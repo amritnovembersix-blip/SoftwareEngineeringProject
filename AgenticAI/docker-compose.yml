@@ -1,0 +1,50 @@
+# Agentic service + its data tier. From AgenticAI/: cp .env.example .env && docker compose up -d --build
+# Synced from the lab repo; see SYNCED_FROM.txt. The team's root compose can include these services.
+name: sass-agentic
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  flyway:
+    image: flyway/flyway:10
+    command:
+      - -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - -user=${POSTGRES_USER}
+      - -password=${POSTGRES_PASSWORD}
+      - -locations=filesystem:/flyway/sql
+      - -connectRetries=10
+      - migrate
+    volumes:
+      - ./db/migrations:/flyway/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  agentic:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL_LOCAL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATA_DIR: /app/data
+    volumes:
+      - ../AgenticLab/data/synthetic:/app/data:ro
+    ports: ["8000:8000"]
+    depends_on:
+      flyway: { condition: service_completed_successfully }
+
+volumes:
+  pgdata:

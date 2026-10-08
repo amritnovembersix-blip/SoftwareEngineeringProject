@@ -1,0 +1,6 @@
+AgenticLab/ is synced from the agentic lab repo; edit it there, not here.
+
+Lab repo:   GrouchoLarks/csci-5030-project
+Lab folder: agentic_lab/  (paths in its docs say agentic_lab/; here it is AgenticLab/)
+Commit:     67b74fa (main)
+Exported:   2026-10-08 18:44 UTC
