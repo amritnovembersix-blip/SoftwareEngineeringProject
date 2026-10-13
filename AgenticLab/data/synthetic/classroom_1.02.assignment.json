@@ -1,0 +1,20 @@
+{
+ "id": "rl-theme",
+ "type": "rl",
+ "text": "Animal Farm (George Orwell)",
+ "title": "Theme in Animal Farm",
+ "prompt": "Choose ONE important theme in Animal Farm (for example, how power corrupts, or how language is used to control others). In about five paragraphs, trace how this theme develops from the beginning of the novel to the end, and explain how at least one character's changes help develop it. Support each point with quotations from the novel and explain what each quotation shows. Organize your essay with a clear claim, transitions between ideas, and a conclusion, and proofread for conventions.",
+ "targets": [
+  "9-10.RL.1.A",
+  "9-10.RL.1.D",
+  "9-10.RL.2.D",
+  "9-10.W.2.A",
+  "9-10.W.3.A.a",
+  "9-10.W.3.A.b",
+  "9-10.W.3.A.c",
+  "9-10.W.3.A.d"
+ ],
+ "notes": {
+  "9-10.RL.1.D": "This assignment asks for ONE theme. Judge how well that one theme is identified and developed; do not expect two or more themes."
+ }
+}
