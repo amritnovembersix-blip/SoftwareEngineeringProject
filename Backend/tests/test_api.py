@@ -1,5 +1,5 @@
-"""Endpoint tests against the real database. Skipped when Postgres isn't reachable
-or hasn't been filled with Justin's demo data (seed-demo, load-standards, review --persist)."""
+"""Endpoint tests against the real database. Each test skips when the data it needs isn't there:
+the classroom and enrollments come from seed-demo; findings only exist after a review."""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,38 +9,55 @@ from app.main import app
 client = TestClient(app)
 
 
-def _has_demo_data() -> bool:
+def _count(sql: str) -> int:
     try:
-        return bool(db.query("SELECT 1 FROM finding LIMIT 1"))
+        return db.query(sql)[0]["n"]
     except Exception:
-        return False
+        return 0
 
 
-pytestmark = pytest.mark.skipif(not _has_demo_data(), reason="database not running or not filled")
+HAS_ENROLLMENT = _count("SELECT count(*) AS n FROM enrollment WHERE classroom_id = 'classroom_1.01'") > 0
+HAS_FINDINGS = _count("SELECT count(*) AS n FROM finding") > 0
+needs_seed = pytest.mark.skipif(not HAS_ENROLLMENT, reason="classroom_1.01 not seeded with enrollments")
+needs_review = pytest.mark.skipif(not HAS_FINDINGS, reason="no reviews saved yet")
 
 
-def test_classrooms():
+@needs_seed
+def test_classrooms_count_enrolled_students():
     rows = client.get("/classrooms").json()
-    assert any(r["id"] == "classroom_1.01" for r in rows)
+    c = next(r for r in rows if r["id"] == "classroom_1.01")
+    enrolled = _count("SELECT count(*) AS n FROM enrollment WHERE classroom_id = 'classroom_1.01'")
+    assert c["student_count"] == enrolled
+    assert 0 <= c["reviewed_count"] <= enrolled
 
 
-def test_students_in_classroom():
+@needs_seed
+def test_students_listed_from_enrollment_even_before_review():
     rows = client.get("/classrooms/classroom_1.01/students").json()
-    assert rows and {"student_id", "review_status", "finding_count"} <= rows[0].keys()
+    enrolled = _count("SELECT count(*) AS n FROM enrollment WHERE classroom_id = 'classroom_1.01'")
+    assert len(rows) == enrolled
+    assert {"student_id", "review_status", "finding_count"} <= rows[0].keys()
+    for r in rows:
+        if r["review_status"] == "not_reviewed":
+            assert r["finding_count"] == 0 and r["submission_id"] is None
 
 
+@needs_seed
 def test_unknown_classroom_is_404():
     assert client.get("/classrooms/nope/students").status_code == 404
 
 
-def test_findings_for_a_student():
-    student = client.get("/classrooms/classroom_1.01/students").json()[0]["student_id"]
-    findings = client.get(f"/students/{student}/findings").json()
-    assert findings
+@needs_review
+def test_findings_for_a_reviewed_student():
+    students = client.get("/classrooms/classroom_1.01/students").json()
+    reviewed = next(s for s in students if s["review_status"] == "succeeded" and s["finding_count"] > 0)
+    findings = client.get(f"/students/{reviewed['student_id']}/findings").json()
+    assert len(findings) == reviewed["finding_count"]
     f = findings[0]
     assert f["standard_code"] and f["summary"]
     assert f["evidence"] and "paragraph" in f["evidence"][0]
 
 
+@needs_seed
 def test_unknown_student_is_404():
     assert client.get("/students/nope/findings").status_code == 404
