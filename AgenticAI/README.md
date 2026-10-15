@@ -50,7 +50,7 @@ docker compose up --exit-code-from flyway flyway
 |---|---|---|
 | `review` | Review one student's essay (student hash prefix) | `review 1a2b --strategy full --persist` |
 | `load-standards` | Embed and load the standards spreadsheet into Postgres | `load-standards` (or `--file <xlsx>`) |
-| `seed-demo` | Seed the demo teacher, classroom, students and assignment | `seed-demo --classroom 1.01` |
+| `seed-demo` | Seed the demo teacher, classroom, students, enrollments and assignment (no reviews) | `seed-demo --classroom 1.01` |
 | `reset-reviews` | DEV/DEMO only: delete one classroom's review results so it can be reviewed again (keeps standards, classroom, students) | `reset-reviews --classroom 1.01` |
 
 `generate-essays` and `evaluate` are lab commands: `python -m agentic_lab ...` (see `agentic_lab/README.md`).
