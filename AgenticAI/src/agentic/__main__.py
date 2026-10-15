@@ -150,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     ls = sub.add_parser("load-standards", help="embed and load the standards spreadsheet")
     ls.add_argument("--file")
     ls.set_defaults(func=_load_standards)
-    sd = sub.add_parser("seed-demo", help="seed the demo teacher, classroom, students and assignment")
+    sd = sub.add_parser("seed-demo", help="seed the demo teacher, classroom, students, enrollments and assignment")
     sd.add_argument("--classroom")
     sd.set_defaults(func=_seed_demo)
     rr = sub.add_parser("reset-reviews", help="DEV/DEMO: delete one classroom's review results")

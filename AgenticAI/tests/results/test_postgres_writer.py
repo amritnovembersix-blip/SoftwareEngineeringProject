@@ -63,6 +63,21 @@ def test_seed_demo_idempotent(db_conn, tmp_path):
     assert _n(db_conn, "teacher", "id = 'demo-teacher'") == 1
 
 
+def test_seed_demo_enrolls_every_student_once(db_conn, tmp_path):
+    """The Students page lists enrolled students, so they show before any review is saved."""
+    students = [H, "b" * 64]
+    write_labels(tmp_path, "1.01", [label_row(student_hash=h) for h in students])
+    write_essays(tmp_path, "1.01", [essay_row(student_hash=h, course_id="classroom_1.01",
+                                              assignment_id="asg-classroom_1.01-essay1") for h in students])
+    seed_demo(db_conn, tmp_path, "1.01")
+    seed_demo(db_conn, tmp_path, "1.01")  # idempotent
+    ids = "', '".join(students)
+    where = f"classroom_id = 'classroom_1.01' AND student_id IN ('{ids}')"
+    assert _n(db_conn, "enrollment", where) == 2
+    assert _n(db_conn, "enrollment", where + " AND start_date IS NOT NULL AND end_date IS NULL") == 2
+    assert _n(db_conn, "submission", f"student_id IN ('{ids}')") == 0  # seeding reviews nothing
+
+
 def test_writer_is_a_results_writer(seeded):
     assert isinstance(PostgresResultsWriter(seeded[0]), ResultsWriter)
 
@@ -159,6 +174,7 @@ def test_reset_reviews_clears_one_classroom_only(seeded):
     assert _n(conn, "review_run", f"id = '{out.review_run_id}'") == 0
     assert _n(conn, "standard", "code IN ('t.1', 't.2')") == 2  # kept
     assert _n(conn, "student", f"id = '{H}'") == 1 and _n(conn, "classroom", "id = 'classroom_1.01'") == 1
+    assert _n(conn, "enrollment", f"classroom_id = 'classroom_1.01' AND student_id = '{H}'") == 1  # kept
     assert not PostgresResultsWriter(conn).is_reviewed("sub-1", 1)  # can be reviewed again
 
 
