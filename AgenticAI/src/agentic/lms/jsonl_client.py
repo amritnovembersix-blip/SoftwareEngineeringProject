@@ -35,9 +35,24 @@ class JsonlLMSClient:
         ]
         if not matches:
             raise LookupError("no submission found")
-        e = max(matches, key=lambda r: r.attempt)
-        body = "".join(f"<p>{html.escape(p)}</p>" for p in e.paragraphs)
-        return Submission(
-            id=e.submission_id, user_id=e.student_hash, assignment_id=e.assignment_id,
-            attempt=e.attempt, body=body, submitted_at=e.submitted_at,
-        )
+        return _submission(max(matches, key=lambda r: r.attempt))
+
+    def list_submissions(self, course_id: str, assignment_id: str | None = None) -> list[Submission]:
+        if course_id != dataset.course_id(self._version):
+            raise LookupError(f"unknown course {course_id!r}")
+        latest: dict[tuple[str, str], dataset.EssayRow] = {}
+        for e in dataset.load_essays(self._data_dir, self._version):
+            if e.course_id != course_id or (assignment_id and e.assignment_id != assignment_id):
+                continue
+            key = (e.assignment_id, e.student_hash)
+            if key not in latest or e.attempt > latest[key].attempt:
+                latest[key] = e
+        return [_submission(e) for _, e in sorted(latest.items())]
+
+
+def _submission(e: dataset.EssayRow) -> Submission:
+    body = "".join(f"<p>{html.escape(p)}</p>" for p in e.paragraphs)
+    return Submission(
+        id=e.submission_id, user_id=e.student_hash, assignment_id=e.assignment_id,
+        attempt=e.attempt, body=body, submitted_at=e.submitted_at,
+    )

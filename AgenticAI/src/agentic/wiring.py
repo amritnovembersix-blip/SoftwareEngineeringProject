@@ -17,6 +17,7 @@ from agentic.review.strategies import (
     AnalysisOut, AssessmentOut, Evidence, FullListStrategy, IssueOut, Judgment, JudgmentOut,
     RagStrategy, StandardAssessment, StandardsSource, StandardsStrategy,
 )
+from agentic import dataset
 from agentic.dataset import load_assignment, normalize_strands
 from agentic.standards.fake import InMemoryStandards, demo_standards
 from agentic.standards.strand_filter import StrandFilter, TargetFilter
@@ -176,8 +177,20 @@ def build_reviewer(s: Settings, strategy: str | None = None, version: str | None
                     targets=getattr(standards, "codes", []), assignment_context=use_context)
 
 
+def _course_version(course_id: str) -> str | None:
+    """With the JSONL LMS a course `classroom_<v>` is classroom version <v>; other IDs -> CLASSROOM."""
+    return course_id.removeprefix("classroom_") if course_id.startswith("classroom_") else None
+
+
 def build_course_reviewer(s: Settings, course_id: str, conn=None) -> Reviewer:
-    """Reviewer for an LMS course ID (the HTTP service's entry point). With the JSONL LMS a course
-    `classroom_<v>` is classroom version <v>; other IDs fall back to CLASSROOM."""
-    version = course_id.removeprefix("classroom_") if course_id.startswith("classroom_") else None
-    return build_reviewer(s, version=version, conn=conn)
+    """Reviewer for an LMS course ID (the HTTP service's entry point)."""
+    return build_reviewer(s, version=_course_version(course_id), conn=conn)
+
+
+def build_course_lms(s: Settings, course_id: str) -> LMSClient:
+    return build_lms(s, _course_version(course_id))
+
+
+def list_course_ids(s: Settings) -> list[str]:
+    """Every course the LMS knows about (JSONL LMS: every classroom with an essays file)."""
+    return [dataset.course_id(v) for v in dataset.list_versions(s.data_dir)]

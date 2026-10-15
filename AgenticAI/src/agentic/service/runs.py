@@ -48,6 +48,7 @@ class RunStore:
         self._lock = threading.Lock()
         self._runs: dict[str, Run] = {}
         self._by_attempt: dict[tuple[str, int], str] = {}
+        self._by_scope: dict[tuple, str] = {}
 
     def claim(self, submission_id: str, attempt: int, trigger: Trigger) -> tuple[Run, bool]:
         key = (submission_id, attempt)
@@ -58,6 +59,19 @@ class RunStore:
             run = Run(run_id=str(uuid.uuid4()), trigger=trigger, submission_count=1, created_at=now())
             self._runs[run.run_id] = run
             self._by_attempt[key] = run.run_id
+            return run.model_copy(), False
+
+    def create(self, trigger: Trigger, submission_count: int, scope: tuple = ()) -> tuple[Run, bool]:
+        """A sweep run for `scope` (e.g. (course_id, assignment_id)). While a run for the same scope is
+        queued or running it is returned instead, with duplicate=True (a double click starts nothing)."""
+        with self._lock:
+            existing = self._runs.get(self._by_scope.get(scope, ""))
+            if existing and existing.status in ("queued", "running"):
+                return existing.model_copy(), True
+            run = Run(run_id=str(uuid.uuid4()), trigger=trigger, submission_count=submission_count,
+                      created_at=now())
+            self._runs[run.run_id] = run
+            self._by_scope[scope] = run.run_id
             return run.model_copy(), False
 
     def get(self, run_id: str) -> Run | None:

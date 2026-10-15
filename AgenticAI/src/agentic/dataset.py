@@ -129,6 +129,12 @@ def classroom_grade(data_dir: Path, version: str) -> int:
     return _grade_only(data_dir, version)
 
 
+def list_versions(data_dir: Path) -> list[str]:
+    """Classroom versions that have an essays file, e.g. ["1.01", "1.02"]."""
+    prefix, suffix = "essays_classroom_", ".jsonl"
+    return sorted(p.name[len(prefix):-len(suffix)] for p in Path(data_dir).glob(f"{prefix}*{suffix}"))
+
+
 def course_id(version: str) -> str:
     return f"classroom_{version}"
 
