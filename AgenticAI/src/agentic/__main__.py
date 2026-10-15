@@ -107,6 +107,24 @@ def _seed_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _reset_reviews(args: argparse.Namespace) -> int:
+    from agentic.results.reset import reset_reviews
+
+    s = Settings.load()
+    classroom_id = dataset.course_id(args.classroom)  # the LMS course ID
+    try:
+        conn = wiring.connect(s)
+        with conn:
+            counts = reset_reviews(conn, classroom_id)
+    except Exception as err:  # noqa: BLE001 - print class only, never the message
+        print(f"reset-reviews failed: {type(err).__name__}", file=sys.stderr)
+        return 1
+    print(f"reset {classroom_id}: " + ", ".join(f"{t} {n}" for t, n in counts.items()))
+    print("POST /sweeps can review this class again now. The webhook remembers attempts it reviewed "
+          "until the agentic service restarts.")
+    return 0
+
+
 def _serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -135,6 +153,9 @@ def main(argv: list[str] | None = None) -> int:
     sd = sub.add_parser("seed-demo", help="seed the demo teacher, classroom, students and assignment")
     sd.add_argument("--classroom")
     sd.set_defaults(func=_seed_demo)
+    rr = sub.add_parser("reset-reviews", help="DEV/DEMO: delete one classroom's review results")
+    rr.add_argument("--classroom", required=True, help="classroom version, e.g. 1.01")
+    rr.set_defaults(func=_reset_reviews)
     sv = sub.add_parser("serve", help="run the HTTP service (contracts/agentic-api.yaml)")
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8000)

@@ -130,3 +130,79 @@ def test_save_records_trigger(seeded):
     out = w.save(_result(), trigger="on_grade")
     trigger = conn.execute("SELECT trigger_type FROM review_run WHERE id = %s", (out.review_run_id,)).fetchone()
     assert trigger == ("on_grade",)
+
+
+def test_is_reviewed(seeded):
+    conn, _ = seeded
+    w = PostgresResultsWriter(conn)
+    assert not w.is_reviewed("sub-1", 1)
+    w.save(_result())
+    assert w.is_reviewed("sub-1", 1) and not w.is_reviewed("sub-1", 2)
+
+
+def test_reset_reviews_clears_one_classroom_only(seeded):
+    from agentic.results.reset import reset_reviews
+
+    conn, _ = seeded
+    out = PostgresResultsWriter(conn).save(_result())
+    sid = conn.execute("SELECT id FROM submission WHERE lms_submission_id = 'sub-1'").fetchone()[0]
+    fid = conn.execute("SELECT id FROM finding WHERE submission_id = %s LIMIT 1", (sid,)).fetchone()[0]
+    conn.execute("INSERT INTO teacher_response (finding_id, teacher_id, stance) VALUES (%s, 'demo-teacher', 'agree')",
+                 (fid,))
+    assert reset_reviews(conn, "classroom_no_such")["submission"] == 0
+    assert _n(conn, "submission", "lms_submission_id = 'sub-1'") == 1
+
+    counts = reset_reviews(conn, "classroom_1.01")
+    assert counts["finding"] >= 2 and counts["observation"] >= 3 and counts["teacher_response"] >= 1
+    assert _n(conn, "submission", "lms_submission_id = 'sub-1'") == 0
+    assert _n(conn, "finding", f"submission_id = '{sid}'") == 0
+    assert _n(conn, "review_run", f"id = '{out.review_run_id}'") == 0
+    assert _n(conn, "standard", "code IN ('t.1', 't.2')") == 2  # kept
+    assert _n(conn, "student", f"id = '{H}'") == 1 and _n(conn, "classroom", "id = 'classroom_1.01'") == 1
+    assert not PostgresResultsWriter(conn).is_reviewed("sub-1", 1)  # can be reviewed again
+
+
+def _lms_named_class(conn):
+    """A classroom whose SASS keys differ from its LMS IDs (as a backend import might create)."""
+    conn.execute("INSERT INTO classroom (id, lms_course_id, teacher_id, subject, grade_level, name) "
+                 "VALUES ('sass-class-9', 'lms-course-9', 'demo-teacher', 'ela', 9, 'Class 9')")
+    conn.execute("INSERT INTO assignment (id, lms_assignment_id, classroom_id, title, submission_type) "
+                 "VALUES ('sass-asg-9', 'lms-asg-9', 'sass-class-9', 'Essay', 'essay')")
+    conn.execute("INSERT INTO student (id, lms_user_id) VALUES ('sass-stu-9', 'lms-user-9')")
+
+
+def _lms_result(user="lms-user-9"):
+    r = _result(sub="lms-sub-9")
+    ref = r.submission_ref.model_copy(update={"course_id": "lms-course-9", "assignment_id": "lms-asg-9",
+                                              "user_id": user})
+    return r.model_copy(update={"submission_ref": ref})
+
+
+def test_save_maps_lms_ids_to_sass_rows(seeded):
+    conn, _ = seeded
+    _lms_named_class(conn)
+    out = PostgresResultsWriter(conn).save(_lms_result())
+    assert out.status == "written"
+    row = conn.execute("SELECT assignment_id, student_id FROM submission WHERE lms_submission_id = 'lms-sub-9'"
+                       ).fetchone()
+    assert row == ("sass-asg-9", "sass-stu-9")
+
+
+def test_save_unseeded_student_fails_cleanly(seeded):
+    conn, _ = seeded
+    _lms_named_class(conn)
+    with pytest.raises(LookupError) as ei:
+        PostgresResultsWriter(conn).save(_lms_result(user="lms-user-unknown"))
+    assert "lms-user-unknown" not in str(ei.value)
+    assert _n(conn, "submission", "lms_submission_id = 'lms-sub-9'") == 0
+    assert _n(conn, "review_run", "status = 'failed' AND error = 'LookupError'") >= 1
+
+
+def test_reset_by_lms_course_id(seeded):
+    from agentic.results.reset import reset_reviews
+
+    conn, _ = seeded
+    _lms_named_class(conn)
+    PostgresResultsWriter(conn).save(_lms_result())
+    assert reset_reviews(conn, "sass-class-9")["submission"] == 0  # the SASS key is not the LMS ID
+    assert reset_reviews(conn, "lms-course-9")["submission"] == 1

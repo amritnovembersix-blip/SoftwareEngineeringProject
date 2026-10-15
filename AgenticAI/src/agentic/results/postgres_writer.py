@@ -1,6 +1,9 @@
 """Adapter: ResultsWriter over the lab Postgres schema (claim-persist protocol, see V4 comments).
 
 Privacy: only reasons (<= 12 words) and template summaries are written; never essay text.
+IDs: a ReviewResult carries LMS IDs; the SASS rows they belong to are found through the `lms_*`
+columns (classroom.lms_course_id, assignment.lms_assignment_id, student.lms_user_id), so SASS keys
+never have to equal LMS IDs. Those rows must exist first (seeded from the LMS).
 Uses `with conn.transaction()` only (savepoints under a test transaction, real transactions
 on an autocommit connection).
 """
@@ -10,6 +13,12 @@ from agentic.models import ReviewResult
 from agentic.results.base import SaveOutcome
 
 CHUNKER_VERSION = "mvp-whole-essay-1"
+
+_SASS_IDS = """
+SELECT a.id, (SELECT s.id FROM student s WHERE s.lms_user_id = %(user)s)
+FROM assignment a JOIN classroom c ON c.id = a.classroom_id
+WHERE a.lms_assignment_id = %(asg)s AND c.lms_course_id = %(course)s
+"""
 
 _CLAIM = """
 INSERT INTO submission (lms_submission_id, attempt, assignment_id, student_id, submitted_at,
@@ -31,6 +40,11 @@ class PostgresResultsWriter:
 
     def close(self) -> None:
         self._conn.close()
+
+    def is_reviewed(self, submission_id: str, attempt: int) -> bool:
+        return self._conn.execute(
+            "SELECT 1 FROM submission WHERE lms_submission_id = %s AND attempt = %s "
+            "AND review_status = 'succeeded'", (submission_id, attempt)).fetchone() is not None
 
     def save(self, result: ReviewResult, trigger: str = "manual") -> SaveOutcome:
         ref = result.submission_ref
@@ -66,8 +80,12 @@ class PostgresResultsWriter:
         """Returns the other run's id when the submission is claimed elsewhere, else None."""
         c = self._conn
         ref = result.submission_ref
+        ids = c.execute(_SASS_IDS, {"user": ref.user_id, "asg": ref.assignment_id,
+                                    "course": ref.course_id}).fetchone()
+        if ids is None or ids[1] is None:  # message names no IDs: they are student identifiers
+            raise LookupError("assignment or student not in the database; seed the LMS tables first")
         row = c.execute(_CLAIM, {"sub": ref.submission_id, "attempt": ref.attempt,
-                                 "asg": ref.assignment_id, "student": ref.user_id,
+                                 "asg": ids[0], "student": ids[1],
                                  "at": ref.submitted_at, "run": run_id}).fetchone()
         if row is None:
             return c.execute("SELECT review_run_id::text FROM submission WHERE lms_submission_id = %s "

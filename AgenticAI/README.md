@@ -51,6 +51,7 @@ docker compose up --exit-code-from flyway flyway
 | `review` | Review one student's essay (student hash prefix) | `review 1a2b --strategy full --persist` |
 | `load-standards` | Embed and load the standards spreadsheet into Postgres | `load-standards` (or `--file <xlsx>`) |
 | `seed-demo` | Seed the demo teacher, classroom, students and assignment | `seed-demo --classroom 1.01` |
+| `reset-reviews` | DEV/DEMO only: delete one classroom's review results so it can be reviewed again (keeps standards, classroom, students) | `reset-reviews --classroom 1.01` |
 
 `generate-essays` and `evaluate` are lab commands: `python -m agentic_lab ...` (see `agentic_lab/README.md`).
 
@@ -115,7 +116,8 @@ docker compose up -d --build agentic                          # container (from 
 | `POST /events/submission-graded` | `X-SASS-Webhook-Secret` = `WEBHOOK_SECRET` | LMS grading webhook. 202 with a `run_id`; the review runs in the background. One run per (submission, attempt): repeats return `duplicate: true`; a failed run can be retried |
 | `GET /runs/{run_id}` | `Bearer AGENTIC_API_TOKEN` | Run status, counts, skips; `error` is an exception class name only |
 | `GET`/`PUT /review-policy` | bearer | In-memory policy. `on_grade: false` makes the webhook ignore events |
-| `POST /sweeps`, `/trend-analyses` | bearer | 501 `not_implemented` for now |
+| `POST /sweeps` | bearer | Review every submission in a course (`{"course_id": ...}`, optional `assignment_id`; no body = every course). 202 + `run_id`; counts on `GET /runs/{id}` update as each review finishes. Already-reviewed attempts are skipped; a sweep of the same scope still running is returned with `duplicate: true`. Backend integration notes: `docs/superpowers/specs/2026-10-14-review-button-demo-design.md` (lab repo) |
+| `POST /trend-analyses` | bearer | 501 `not_implemented` for now |
 
 - Results are not served over HTTP: with `PERSIST_RESULTS=1` (default) each review is saved through the
   `ResultsWriter` (Postgres), and consumers read findings there by `lms_submission_id` + `attempt`.

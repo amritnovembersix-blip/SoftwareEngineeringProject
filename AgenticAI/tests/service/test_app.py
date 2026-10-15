@@ -27,6 +27,10 @@ class MemoryWriter:
         self.saved.append((result, trigger))
         return SaveOutcome(status="duplicate" if self.duplicate else "written", review_run_id="r-1")
 
+    def is_reviewed(self, submission_id, attempt):
+        ref = (submission_id, attempt)
+        return any((r.submission_ref.submission_id, r.submission_ref.attempt) == ref for r, _ in self.saved)
+
     def close(self):
         self.closed += 1
 
@@ -196,10 +200,9 @@ def test_invalid_policy_is_422_and_unchanged(setup, field, value, code):
     assert client.get("/review-policy", headers=AUTH).json() == before
 
 
-@pytest.mark.parametrize("path", ["/sweeps", "/trend-analyses"])
-def test_unbuilt_triggers_are_501(setup, path):
+def test_trend_analysis_is_501(setup):
     client, _, _ = setup
-    r = client.post(path, json={}, headers=AUTH)
+    r = client.post("/trend-analyses", json={}, headers=AUTH)
     assert r.status_code == 501 and r.json()["error"]["code"] == "not_implemented"
 
 

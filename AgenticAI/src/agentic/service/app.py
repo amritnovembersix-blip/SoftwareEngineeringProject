@@ -1,7 +1,7 @@
 """HTTP service (FastAPI) for contracts/agentic-api.yaml.
 
-Built now: /health, the grading webhook (on_grade), GET /runs/{run_id}, GET/PUT /review-policy.
-Not yet: /sweeps and /trend-analyses answer 501 (the LMS Target cannot list submissions yet).
+Built now: /health, the grading webhook (on_grade), POST /sweeps (manual), GET /runs/{run_id},
+GET/PUT /review-policy. Not yet: /trend-analyses answers 501.
 
 Reviews run after the 202 response (FastAPI background task, worker thread). Nothing here logs
 or returns request content: errors carry codes and field names only.
@@ -19,6 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from agentic import wiring
 from agentic.config import Settings
+from agentic.lms.base import LMSClient
 from agentic.models import SubmissionRef
 from agentic.results.base import ResultsWriter
 from agentic.review.graph import Reviewer
@@ -27,6 +28,7 @@ from agentic.service.runs import RunStore, Skip, now
 
 ReviewerFactory = Callable[[Settings, str], Reviewer]  # (settings, course_id) -> Reviewer
 WriterFactory = Callable[[Settings], ResultsWriter]
+LMSFactory = Callable[[Settings, str], LMSClient]  # (settings, course_id) -> LMSClient
 
 
 class ApiError(Exception):
@@ -52,6 +54,11 @@ class SubmissionGradedEvent(BaseModel):
     body: EventBody
 
 
+class SweepRequest(BaseModel):
+    course_id: str | None = None
+    assignment_id: str | None = None  # requires course_id
+
+
 class TriggerAccepted(BaseModel):
     run_id: str | None
     duplicate: bool
@@ -72,7 +79,8 @@ def _same(given: str | None, expected: str) -> bool:
 
 
 def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFactory | None = None,
-               writer_factory: WriterFactory | None = None) -> FastAPI:
+               writer_factory: WriterFactory | None = None, lms_factory: LMSFactory | None = None,
+               course_lister: Callable[[Settings], list[str]] | None = None) -> FastAPI:
     s = settings or Settings.load()
     shared: dict = {}
     lock = threading.Lock()
@@ -88,6 +96,8 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
 
     make_reviewer = reviewer_factory or default_reviewer
     make_writer = writer_factory or wiring.build_results_writer
+    make_lms = lms_factory or wiring.build_course_lms
+    list_courses = course_lister or wiring.list_course_ids
     runs = RunStore()
     state = {"policy": DEFAULT_POLICY}
     app = FastAPI(title="SASS Agentic Service", version="0.1.0")
@@ -141,6 +151,44 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
         else:
             runs.update(run_id, status="succeeded", completed_count=1, finished_at=now())
 
+    def sweep(run_id: str, refs: list[SubmissionRef], skips: list[Skip]) -> None:
+        """Review each submission in turn, updating the run's counts as it goes (the UI's progress)."""
+        runs.update(run_id, status="running", started_at=now(), skipped_count=len(skips), skips=list(skips))
+        completed, failures, reviewers = 0, [], {}
+        writer = None
+        try:
+            writer = make_writer(s) if s.persist_results else None
+            for ref in refs:
+                try:
+                    if writer is not None and writer.is_reviewed(ref.submission_id, ref.attempt):
+                        skips.append(Skip(submission_id=ref.submission_id, attempt=ref.attempt,
+                                          reason="already_reviewed"))
+                    else:
+                        if ref.course_id not in reviewers:
+                            reviewers[ref.course_id] = make_reviewer(s, ref.course_id)
+                        result = reviewers[ref.course_id].run(ref)
+                        outcome = writer.save(result, trigger="manual") if writer is not None else None
+                        if outcome is not None and outcome.status == "duplicate":
+                            skips.append(Skip(submission_id=ref.submission_id, attempt=ref.attempt,
+                                              reason="already_reviewed"))
+                        else:
+                            completed += 1
+                except Exception as err:  # noqa: BLE001 - keep the class only; carry on with the rest
+                    failures.append(type(err).__name__)
+                runs.update(run_id, completed_count=completed, skipped_count=len(skips), skips=list(skips))
+        except Exception as err:  # noqa: BLE001 - e.g. the database is down before any review
+            failures.append(type(err).__name__)
+        finally:
+            close = getattr(writer, "close", None)
+            if close:
+                close()
+        if failures:
+            names = ", ".join(sorted(set(failures)))
+            runs.update(run_id, status="failed", finished_at=now(),
+                        error=f"{len(failures)} of {len(refs)} reviews failed ({names})")
+        else:
+            runs.update(run_id, status="succeeded", finished_at=now())
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
@@ -176,9 +224,34 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
         state["policy"] = policy
         return policy
 
-    @app.post("/sweeps", dependencies=[Depends(service_token)])
-    def sweeps():
-        raise ApiError(501, "not_implemented", "sweeps need an LMS that can list submissions")
+    @app.post("/sweeps", status_code=202, dependencies=[Depends(service_token)])
+    def sweeps(tasks: BackgroundTasks, req: SweepRequest | None = None) -> TriggerAccepted:
+        """Review the latest attempt of every submitted, non-excused submission in scope that has not
+        been reviewed. Listing happens now (an unknown course is a 422); reviewing in the background.
+        A sweep of the same scope that is still queued or running is returned with duplicate=True."""
+        req = req or SweepRequest()
+        if req.assignment_id and not req.course_id:
+            raise ApiError(422, "validation_failed", "assignment_id requires course_id",
+                           {"fields": ["body.course_id"]})
+        refs, skips = [], []
+        for course_id in [req.course_id] if req.course_id else list_courses(s):
+            try:
+                submissions = make_lms(s, course_id).list_submissions(course_id, req.assignment_id)
+            except (LookupError, FileNotFoundError):
+                raise ApiError(422, "unknown_course", "the LMS has no such course") from None
+            for sub in submissions:
+                if sub.excused:
+                    skips.append(Skip(submission_id=sub.id, attempt=sub.attempt, reason="excused"))
+                elif sub.workflow_state == "unsubmitted":
+                    skips.append(Skip(submission_id=sub.id, attempt=None, reason="not_submitted"))
+                else:
+                    refs.append(SubmissionRef(course_id=course_id, assignment_id=sub.assignment_id,
+                                              user_id=sub.user_id, submission_id=sub.id,
+                                              attempt=sub.attempt, submitted_at=sub.submitted_at))
+        run, duplicate = runs.create("manual", len(refs) + len(skips), (req.course_id, req.assignment_id))
+        if not duplicate:
+            tasks.add_task(sweep, run.run_id, refs, skips)
+        return TriggerAccepted(run_id=run.run_id, duplicate=duplicate, ignored=False)
 
     @app.post("/trend-analyses", dependencies=[Depends(service_token)])
     def trend_analyses():
