@@ -1,5 +1,5 @@
 import pytest
-from fakes import std_row, xlsx_fixture
+from fakes import clear_standards, std_row, xlsx_fixture
 
 from agentic.llm.fake import FakeEmbedder
 from agentic.standards.loader import embed_text, load, normalize_rows, read_xlsx
@@ -10,9 +10,7 @@ pytestmark = pytest.mark.db
 
 @pytest.fixture
 def repo(db_conn, tmp_path):
-    db_conn.execute("DELETE FROM observation")
-    db_conn.execute("DELETE FROM finding_standard")
-    db_conn.execute("DELETE FROM standard")
+    clear_standards(db_conn)  # the dev DB may hold real standards and saved reviews
     specs = [std_row(f"9-10.W.{i}", concept=f"c{i}", description=f"d{i}") for i in range(5)]
     specs += [std_row("8.W.1", grade="8", description="eight"),
               std_row("11-12.W.1", grade="11 to 12", description="eleven")]

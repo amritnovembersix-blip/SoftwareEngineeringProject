@@ -87,13 +87,16 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
     lock = threading.Lock()
 
     def default_reviewer(st: Settings, course_id: str) -> Reviewer:
-        """One standards connection shared by all reviews (psycopg connections are thread-safe)."""
+        """One standards connection shared by all reviews (psycopg connections are thread-safe for
+        queries). Reviewers are built one at a time: a build registers pgvector types on that
+        connection inside a transaction, and concurrent builds would interleave those transactions
+        (OutOfOrderTransactionNesting). Builds are quick; the reviews themselves still run in parallel."""
         if st.fake_llm:
             return wiring.build_course_reviewer(st, course_id)
         with lock:
             if "conn" not in shared:
                 shared["conn"] = wiring.connect(st)
-        return wiring.build_course_reviewer(st, course_id, conn=shared["conn"])
+            return wiring.build_course_reviewer(st, course_id, conn=shared["conn"])
 
     make_reviewer = reviewer_factory or default_reviewer
     make_writer = writer_factory or wiring.build_results_writer
