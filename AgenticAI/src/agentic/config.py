@@ -58,6 +58,7 @@ class Settings(BaseModel):
     agentic_api_token: str = ""  # bearer token for the HTTP service; blank = every call is refused
     webhook_secret: str = ""  # X-SASS-Webhook-Secret from the LMS; blank = every event is refused
     persist_results: bool = True  # the HTTP service saves each review through the ResultsWriter
+    review_concurrency: int = 1  # reviews a sweep runs at once; raise with LLM_RPM on a paid model tier
 
     database_url_local: str = "postgresql://sass:change-me@localhost:5432/sass"
     standards_file: Path = PACKAGE_ROOT / "standards" / "mls-ela-writing-v1.xlsx"

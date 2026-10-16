@@ -172,3 +172,12 @@ def test_no_targets_means_strand_scope(env):
     reviewer = wiring.build_reviewer(s)
     assert reviewer.targets == []
     assert len(wiring.build_review_standards(s).at_grade(9)) == 8
+
+
+def test_gemini_chats_share_one_rate_limit():
+    """Parallel reviews build several chat clients; LLM_RPM must stay one shared ceiling."""
+    s = Settings(llm_provider="gemini", llm_model="m", llm_api_key="k", llm_rpm=7)
+    a, b = wiring.build_chat(s), wiring.build_chat(s)
+    assert a is not b and a._limiter is b._limiter
+    other = wiring.build_chat(s.model_copy(update={"llm_rpm": 8}))
+    assert other._limiter is not a._limiter

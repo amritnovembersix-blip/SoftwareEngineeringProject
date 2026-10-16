@@ -58,3 +58,23 @@ def test_gives_up_after_three_attempts():
     with pytest.raises(Retryable):
         call_with_retries(fn, lambda e: True, sleep=lambda s: None)
     assert n["c"] == 3
+
+
+def test_concurrent_callers_get_distinct_slots():
+    """Threads calling acquire() at the same moment are spaced out, never let through together."""
+    import threading
+
+    sleeps: list[float] = []
+    lock = threading.Lock()
+
+    def sleep(s):
+        with lock:
+            sleeps.append(s)
+
+    rl = RateLimiter(rpm=60, clock=lambda: 0.0, sleep=sleep)  # 1 s apart, frozen clock
+    threads = [threading.Thread(target=rl.acquire) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(sleeps) == pytest.approx([1.0, 2.0, 3.0, 4.0])  # first caller doesn't wait

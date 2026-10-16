@@ -9,6 +9,7 @@ or returns request content: errors carry codes and field names only.
 import hmac
 import threading
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
@@ -152,36 +153,59 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
             runs.update(run_id, status="succeeded", completed_count=1, finished_at=now())
 
     def sweep(run_id: str, refs: list[SubmissionRef], skips: list[Skip]) -> None:
-        """Review each submission in turn, updating the run's counts as it goes (the UI's progress)."""
+        """Review the submissions, REVIEW_CONCURRENCY at a time, updating the run's counts after each
+        one (the UI's progress). Each worker thread has its own reviewer and results writer (a database
+        connection carries one thread's transactions at a time); model calls share one rate limit."""
         runs.update(run_id, status="running", started_at=now(), skipped_count=len(skips), skips=list(skips))
-        completed, failures, reviewers = 0, [], {}
-        writer = None
+        lock = threading.Lock()
+        local = threading.local()
+        completed, failures, writers = [0], [], []
+
+        def thread_writer() -> ResultsWriter | None:
+            if not s.persist_results:
+                return None
+            if not hasattr(local, "writer"):
+                local.writer = make_writer(s)
+                with lock:
+                    writers.append(local.writer)
+            return local.writer
+
+        def thread_reviewer(course_id: str) -> Reviewer:
+            reviewers = local.__dict__.setdefault("reviewers", {})
+            if course_id not in reviewers:
+                reviewers[course_id] = make_reviewer(s, course_id)
+            return reviewers[course_id]
+
+        def review_one(ref: SubmissionRef) -> None:
+            try:
+                writer = thread_writer()
+                if writer is not None and writer.is_reviewed(ref.submission_id, ref.attempt):
+                    outcome = "skipped"
+                else:
+                    result = thread_reviewer(ref.course_id).run(ref)
+                    saved = writer.save(result, trigger="manual") if writer is not None else None
+                    outcome = "skipped" if saved is not None and saved.status == "duplicate" else "done"
+            except Exception as err:  # noqa: BLE001 - keep the class only; carry on with the rest
+                outcome = type(err).__name__
+            with lock:
+                if outcome == "done":
+                    completed[0] += 1
+                elif outcome == "skipped":
+                    skips.append(Skip(submission_id=ref.submission_id, attempt=ref.attempt,
+                                      reason="already_reviewed"))
+                else:
+                    failures.append(outcome)
+                runs.update(run_id, completed_count=completed[0], skipped_count=len(skips), skips=list(skips))
+
         try:
-            writer = make_writer(s) if s.persist_results else None
-            for ref in refs:
-                try:
-                    if writer is not None and writer.is_reviewed(ref.submission_id, ref.attempt):
-                        skips.append(Skip(submission_id=ref.submission_id, attempt=ref.attempt,
-                                          reason="already_reviewed"))
-                    else:
-                        if ref.course_id not in reviewers:
-                            reviewers[ref.course_id] = make_reviewer(s, ref.course_id)
-                        result = reviewers[ref.course_id].run(ref)
-                        outcome = writer.save(result, trigger="manual") if writer is not None else None
-                        if outcome is not None and outcome.status == "duplicate":
-                            skips.append(Skip(submission_id=ref.submission_id, attempt=ref.attempt,
-                                              reason="already_reviewed"))
-                        else:
-                            completed += 1
-                except Exception as err:  # noqa: BLE001 - keep the class only; carry on with the rest
-                    failures.append(type(err).__name__)
-                runs.update(run_id, completed_count=completed, skipped_count=len(skips), skips=list(skips))
-        except Exception as err:  # noqa: BLE001 - e.g. the database is down before any review
-            failures.append(type(err).__name__)
+            with ThreadPoolExecutor(max_workers=max(1, s.review_concurrency),
+                                    thread_name_prefix="sweep") as pool:
+                list(pool.map(review_one, refs))
         finally:
-            close = getattr(writer, "close", None)
-            if close:
-                close()
+            for writer in writers:
+                close = getattr(writer, "close", None)
+                if close:
+                    close()
         if failures:
             names = ", ".join(sorted(set(failures)))
             runs.update(run_id, status="failed", finished_at=now(),
