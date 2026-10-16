@@ -125,6 +125,8 @@ docker compose up -d --build agentic                          # container (from 
 - The service reads submissions through `JsonlLMSClient` (course `classroom_<v>` = classroom version `<v>`);
   compose mounts `agentic_lab/data/synthetic` at `/app/data`. An HTTP mock-LMS Adapter replaces it later.
 - Runs live in memory (lost on restart). No request content is logged or echoed in errors.
+- Speed: a sweep reviews `REVIEW_CONCURRENCY` essays at once (default 1). All parallel reviews share one
+  `LLM_RPM` budget, so raise both together on a paid model tier (e.g. 5 and 60).
 
 ## Demo
 

@@ -136,3 +136,91 @@ def test_finished_sweep_does_not_block_a_new_one(env):
     first = client.post("/sweeps", json={"course_id": "classroom_1.01"}, headers=AUTH).json()
     second = client.post("/sweeps", json={"course_id": "classroom_1.01"}, headers=AUTH).json()
     assert second["duplicate"] is False and second["run_id"] != first["run_id"]
+
+
+def _class_of(tmp_path, n):
+    students = [ch * 64 for ch in "defghijklmnop"[:n]]  # distinct first letters: distinct submission IDs
+    _classroom(tmp_path, "1.01", students)
+    return students
+
+
+def test_concurrent_sweep_reviews_in_parallel_with_one_reviewer_per_thread(tmp_path):
+    import threading
+    import time as _time
+
+    from agentic import wiring
+
+    students = _class_of(tmp_path, 8)
+    s = Settings(fake_llm=True, data_dir=tmp_path, agentic_api_token="test-token", review_concurrency=4)
+    lock = threading.Lock()
+    inflight, peak, threads_seen, built = [0], [0], set(), []
+
+    class Slow:
+        def __init__(self, real):
+            self.real = real
+
+        def run(self, ref):
+            with lock:
+                inflight[0] += 1
+                peak[0] = max(peak[0], inflight[0])
+                threads_seen.add(threading.get_ident())
+            _time.sleep(0.15)
+            try:
+                return self.real.run(ref)
+            finally:
+                with lock:
+                    inflight[0] -= 1
+
+    def factory(st, course):
+        built.append(threading.get_ident())
+        return Slow(wiring.build_course_reviewer(st, course))
+
+    writer = MemoryWriter()
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer, reviewer_factory=factory))
+    run = _run(client, {"course_id": "classroom_1.01"})
+    assert run["status"] == "succeeded" and run["completed_count"] == 8
+    assert sorted(r.submission_ref.user_id for r, _ in writer.saved) == sorted(students)
+    assert 1 < peak[0] <= 4  # really parallel, never above REVIEW_CONCURRENCY
+    assert len(built) == len(set(built)) == len(threads_seen)  # one reviewer per worker thread
+
+
+def test_concurrent_sweep_gives_each_thread_its_own_writer_and_closes_them(tmp_path):
+    _class_of(tmp_path, 6)
+    s = Settings(fake_llm=True, data_dir=tmp_path, agentic_api_token="test-token", review_concurrency=3)
+    writers = []
+
+    def make(_s):
+        w = MemoryWriter()
+        writers.append(w)
+        return w
+
+    client = TestClient(create_app(s, writer_factory=make))
+    run = _run(client, {"course_id": "classroom_1.01"})
+    assert run["completed_count"] == 6
+    assert 1 <= len(writers) <= 3 and sum(len(w.saved) for w in writers) == 6
+    assert all(w.closed == 1 for w in writers)
+
+
+def test_concurrent_sweep_counts_failures_and_skips(tmp_path):
+    from agentic import wiring
+
+    students = _class_of(tmp_path, 6)
+    s = Settings(fake_llm=True, data_dir=tmp_path, agentic_api_token="test-token", review_concurrency=3)
+    writer = MemoryWriter()
+
+    class Flaky:
+        def __init__(self, real):
+            self.real = real
+
+        def run(self, ref):
+            if ref.user_id in students[:2]:
+                raise RuntimeError(ESSAY)
+            return self.real.run(ref)
+
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer,
+                                   reviewer_factory=lambda st, c: Flaky(wiring.build_course_reviewer(st, c))))
+    first = _run(client, {"course_id": "classroom_1.01"})
+    assert first["status"] == "failed" and first["completed_count"] == 4
+    assert first["error"] == "2 of 6 reviews failed (RuntimeError)" and ESSAY not in str(first)
+    second = _run(client, {"course_id": "classroom_1.01"})
+    assert second["skipped_count"] == 4 and second["completed_count"] == 0  # reviewed ones skipped

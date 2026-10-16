@@ -21,10 +21,11 @@ def _sleep(seconds: float) -> None:
 
 
 class GeminiChatModel:
-    def __init__(self, model: str, api_key: str, rpm: int, client=None):
+    def __init__(self, model: str, api_key: str, rpm: int, client=None, limiter: RateLimiter | None = None):
+        """`limiter` lets several instances (parallel reviews) share one calls-per-minute budget."""
         self.model_name = model
         self._client = client or genai.Client(api_key=api_key)
-        self._limiter = RateLimiter(rpm, sleep=_sleep)
+        self._limiter = limiter or RateLimiter(rpm, sleep=_sleep)
 
     def structured(self, system: str, user: str, schema: type[T]) -> T:
         config = types.GenerateContentConfig(

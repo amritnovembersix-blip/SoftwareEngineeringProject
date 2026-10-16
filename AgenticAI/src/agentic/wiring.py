@@ -1,5 +1,6 @@
 """Composition point: the only module that names concrete Adapters."""
 import re
+from functools import lru_cache
 
 from agentic.config import Settings
 from agentic.decisions.base import DecisionModel
@@ -8,6 +9,7 @@ from agentic.decisions.jev import JevDecisionModel
 from agentic.llm.base import ChatModel, Embedder
 from agentic.llm.fake import FakeChatModel, FakeEmbedder
 from agentic.llm.gemini import GeminiChatModel, GeminiEmbedder
+from agentic.llm.ratelimit import RateLimiter
 from agentic.lms.base import LMSClient
 from agentic.lms.jsonl_client import JsonlLMSClient
 from agentic.results.base import ResultsWriter
@@ -69,13 +71,21 @@ def _require(s: Settings, *names: str) -> None:
         raise ValueError(f"{' and '.join(missing)} required unless FAKE_LLM=1")
 
 
+@lru_cache(maxsize=None)
+def _shared_limiter(provider: str, model: str, rpm: int) -> RateLimiter:
+    """One calls-per-minute budget per provider and model for the whole process, however many chat
+    clients parallel reviews create."""
+    return RateLimiter(rpm)
+
+
 def build_chat(s: Settings) -> ChatModel:
     provider = "fake" if s.fake_llm else s.llm_provider
     if provider == "fake":
         return demo_fake_chat()
     if provider == "gemini":
         _require(s, "llm_api_key", "llm_model")
-        return GeminiChatModel(s.llm_model, s.llm_api_key, s.llm_rpm)
+        return GeminiChatModel(s.llm_model, s.llm_api_key, s.llm_rpm,
+                               limiter=_shared_limiter("gemini", s.llm_model, s.llm_rpm))
     raise ValueError(f"unknown LLM_PROVIDER {s.llm_provider!r}")
 
 
