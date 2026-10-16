@@ -1,0 +1,518 @@
+openapi: 3.1.0
+info:
+  title: SASS Mock LMS API (Canvas-shaped subset)
+  version: 0.1.0-draft
+  description: |
+    Status: DRAFT · Author: Justin Keck · Owner: TBD · Last changed: 2026-09-28
+
+    A mock LMS serving synthetic data. Paths and field names mirror the Canvas REST API
+    so that a real Canvas sandbox can replace this service through configuration
+    (`LMS_BASE_URL`, `LMS_API_TOKEN`).
+
+    Differences from Canvas:
+    - IDs are always strings (Canvas returns them as strings only with the
+      `application/json+canvas-string-ids` Accept header).
+    - Errors use the SASS error shape (`contracts/conventions.md`), not Canvas's `errors` array.
+    - `Course.subject` and `Course.grade_level` are SASS extensions. In real Canvas they would
+      come from course settings or the student information system (SIS).
+    - The submission list endpoint accepts a `workflow_state` filter (Canvas offers this only
+      on the multi-assignment endpoint).
+
+    Privacy: this service holds synthetic student text (`Submission.body`). SASS itself
+    never stores it; the agentic service reads it at review time only.
+servers:
+  - url: http://localhost:8090
+    description: Local mock LMS (docker compose)
+security:
+  - canvasToken: []
+paths:
+  /api/v1/courses:
+    get:
+      operationId: listCourses
+      summary: List courses
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Courses, paginated through the Link header.
+          headers:
+            Link:
+              $ref: '#/components/headers/Link'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Course'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/courses/{course_id}:
+    get:
+      operationId: getCourse
+      summary: Get a course
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+      responses:
+        '200':
+          description: The course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/courses/{course_id}/assignments:
+    get:
+      operationId: listAssignments
+      summary: List a course's assignments
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Assignments, paginated through the Link header.
+          headers:
+            Link:
+              $ref: '#/components/headers/Link'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/courses/{course_id}/assignments/{assignment_id}:
+    get:
+      operationId: getAssignment
+      summary: Get an assignment
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200':
+          description: The assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/courses/{course_id}/assignments/{assignment_id}/submissions:
+    get:
+      operationId: listSubmissions
+      summary: List an assignment's submissions (latest attempt per student)
+      description: Used by sweeps. Returns one entry per student, showing their latest attempt.
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/AssignmentId'
+        - name: workflow_state
+          in: query
+          required: false
+          description: Filter by state (SASS extension). Repeatable.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/WorkflowState'
+          style: form
+          explode: true
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Submissions, paginated through the Link header.
+          headers:
+            Link:
+              $ref: '#/components/headers/Link'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Submission'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: submitAssignment
+      summary: Submit an assignment as a student (simulation; creates a new attempt)
+      description: |
+        Mirrors Canvas's student submission endpoint. The acting student is identified with
+        Canvas's masquerade parameter `as_user_id`. Each call creates the next `attempt`.
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/AssignmentId'
+        - name: as_user_id
+          in: query
+          required: true
+          description: The student submitting (Canvas masquerading).
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRequest'
+      responses:
+        '201':
+          description: The new attempt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/v1/courses/{course_id}/assignments/{assignment_id}/submissions/{user_id}:
+    get:
+      operationId: getSubmission
+      summary: Get a student's submission for an assignment
+      description: |
+        Returns the latest attempt. With `include[]=submission_history`, it also returns every
+        attempt in `submission_history`, oldest first. The agent uses this to fetch a specific
+        graded attempt after the student has resubmitted.
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/AssignmentId'
+        - $ref: '#/components/parameters/UserId'
+        - name: include[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [submission_history]
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: The submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionWithHistory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: gradeSubmission
+      summary: Grade a submission as the teacher (simulation; sends the webhook)
+      description: |
+        Mirrors Canvas's grading endpoint. Grades the latest attempt, sets `workflow_state` to
+        `graded`, then POSTs a `submission_graded` event to `AGENTIC_WEBHOOK_URL`
+        (see `webhooks.submission_graded`). Re-grading the same attempt sends the event again;
+        the agentic service treats it as a duplicate.
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/AssignmentId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeRequest'
+      responses:
+        '200':
+          description: The graded submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+webhooks:
+  submission_graded:
+    post:
+      operationId: submissionGradedWebhook
+      summary: Sent by the mock LMS to AGENTIC_WEBHOOK_URL when a submission is graded
+      description: |
+        This is a notification only. Receivers must fetch the submission from the LMS (the source
+        of truth) and must not trust grade or state fields from the event.
+        The shared secret is sent in `X-SASS-Webhook-Secret` (value: `WEBHOOK_SECRET`).
+      security: []
+      parameters:
+        - name: X-SASS-Webhook-Secret
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionGradedEvent'
+      responses:
+        '202':
+          description: The receiver accepted the event.
+components:
+  securitySchemes:
+    canvasToken:
+      type: http
+      scheme: bearer
+      description: Static token from `LMS_API_TOKEN` (the same scheme as a Canvas access token).
+  parameters:
+    CourseId:
+      name: course_id
+      in: path
+      required: true
+      schema:
+        type: string
+    AssignmentId:
+      name: assignment_id
+      in: path
+      required: true
+      schema:
+        type: string
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      description: The student's LMS user ID.
+      schema:
+        type: string
+    PerPage:
+      name: per_page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+  headers:
+    Link:
+      description: Canvas-style pagination links (rel="next", rel="prev", rel="first", rel="last").
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: The resource doesn't exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: The request body is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+    WorkflowState:
+      type: string
+      enum: [unsubmitted, submitted, graded, pending_review]
+    Course:
+      type: object
+      required: [id, name, subject, grade_level]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          examples: [ELA 7 - Period 3]
+        course_code:
+          type: string
+        subject:
+          type: string
+          enum: [ela, math]
+          description: SASS extension.
+        grade_level:
+          type: integer
+          minimum: 0
+          maximum: 12
+          description: |
+            SASS extension. The grade whose standards the course's students are held to.
+            Standards in scope are this grade and every lower grade.
+            0 means kindergarten. The MLS ELA corpus covers grades 3–12.
+    RubricCriterion:
+      type: object
+      required: [id, description, points]
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        long_description:
+          type: [string, 'null']
+        points:
+          type: number
+    Assignment:
+      type: object
+      required: [id, course_id, name, submission_types]
+      properties:
+        id:
+          type: string
+        course_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+          description: |
+            HTML. The teacher's objective and instructions. Under evaluation: the agent does
+            NOT review against it in the MVP (submissions are reviewed against state standards).
+        due_at:
+          type: [string, 'null']
+          format: date-time
+          description: The class due date. Per-student extensions appear in Submission.cached_due_date.
+        submission_types:
+          type: array
+          items:
+            type: string
+            enum: [online_text_entry, online_quiz]
+        rubric:
+          type: [array, 'null']
+          description: Optional. Under evaluation, like `description`.
+          items:
+            $ref: '#/components/schemas/RubricCriterion'
+    Submission:
+      type: object
+      required: [id, user_id, assignment_id, attempt, workflow_state, late, missing, excused]
+      properties:
+        id:
+          type: string
+          description: Stable across attempts (as in Canvas). An attempt is identified by (id, attempt).
+        user_id:
+          type: string
+        assignment_id:
+          type: string
+        attempt:
+          type: [integer, 'null']
+          minimum: 1
+          description: null while unsubmitted. Increments on each resubmission.
+        body:
+          type: [string, 'null']
+          description: HTML essay text for online_text_entry. Synthetic data only.
+        submitted_at:
+          type: [string, 'null']
+          format: date-time
+        workflow_state:
+          $ref: '#/components/schemas/WorkflowState'
+        cached_due_date:
+          type: [string, 'null']
+          format: date-time
+          description: This student's effective due date (reflects extensions/overrides).
+        late:
+          type: boolean
+        missing:
+          type: boolean
+        excused:
+          type: boolean
+          description: Excused submissions are skipped by the agent.
+        score:
+          type: [number, 'null']
+        grade:
+          type: [string, 'null']
+    SubmissionWithHistory:
+      allOf:
+        - $ref: '#/components/schemas/Submission'
+        - type: object
+          properties:
+            submission_history:
+              type: array
+              description: Present only with include[]=submission_history. Oldest attempt first.
+              items:
+                $ref: '#/components/schemas/Submission'
+    SubmitRequest:
+      type: object
+      required: [submission]
+      properties:
+        submission:
+          type: object
+          required: [submission_type, body]
+          properties:
+            submission_type:
+              type: string
+              enum: [online_text_entry]
+            body:
+              type: string
+              minLength: 1
+    GradeRequest:
+      type: object
+      required: [submission]
+      properties:
+        submission:
+          type: object
+          required: [posted_grade]
+          properties:
+            posted_grade:
+              type: string
+              description: A score ("87"), percentage ("87%"), or letter grade ("B+"), as in Canvas.
+    SubmissionGradedEvent:
+      type: object
+      required: [metadata, body]
+      properties:
+        metadata:
+          type: object
+          required: [event_name, event_time]
+          properties:
+            event_name:
+              type: string
+              const: submission_graded
+            event_time:
+              type: string
+              format: date-time
+        body:
+          type: object
+          required: [submission_id, assignment_id, course_id, user_id, attempt]
+          properties:
+            submission_id:
+              type: string
+            assignment_id:
+              type: string
+            course_id:
+              type: string
+            user_id:
+              type: string
+            attempt:
+              type: integer
+              minimum: 1
