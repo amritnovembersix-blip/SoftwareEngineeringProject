@@ -224,3 +224,40 @@ def test_concurrent_sweep_counts_failures_and_skips(tmp_path):
     assert first["error"] == "2 of 6 reviews failed (RuntimeError)" and ESSAY not in str(first)
     second = _run(client, {"course_id": "classroom_1.01"})
     assert second["skipped_count"] == 4 and second["completed_count"] == 0  # reviewed ones skipped
+
+
+@pytest.mark.db
+def test_parallel_sweep_with_postgres_standards_builds_reviewers_safely(tmp_path, monkeypatch):
+    """Real-model path: reviewers share one standards connection. Building one registers pgvector
+    types inside a transaction, so concurrent builds used to fail (OutOfOrderTransactionNesting)."""
+    import threading
+    import time as _time
+
+    from agentic import wiring
+    from agentic.standards.repository import PostgresStandards
+
+    _class_of(tmp_path, 8)
+    s = Settings(fake_llm=False, data_dir=tmp_path, agentic_api_token="test-token", review_concurrency=5)
+    fake = s.model_copy(update={"fake_llm": True})
+    real_build = wiring.build_course_reviewer
+    lock = threading.Lock()
+    building, overlap = [0], [False]
+
+    def build(st, course_id, conn=None):
+        with lock:
+            building[0] += 1
+            overlap[0] = overlap[0] or building[0] > 1
+        try:
+            PostgresStandards(conn)  # what the real build does to the shared connection
+            _time.sleep(0.05)
+            return real_build(fake, course_id)  # fake models for the review itself
+        finally:
+            with lock:
+                building[0] -= 1
+
+    monkeypatch.setattr(wiring, "build_course_reviewer", build)
+    writer = MemoryWriter()
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer))
+    run = _run(client, {"course_id": "classroom_1.01"})
+    assert run["error"] is None and run["completed_count"] == 8
+    assert not overlap[0]  # reviewers are built one at a time

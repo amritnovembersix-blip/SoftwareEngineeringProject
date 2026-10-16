@@ -68,3 +68,17 @@ def std_row(code="9-10.W.1.A.a", grade="9 to 10", strand_code="W", strand="Writi
             "Strand Description": strand, "Theme/Big Idea Description": big_idea,
             "Concept Description": concept, "MLS Description": description,
             "Sub expectation": sub}
+
+
+# Tables that reference `standard`, directly or through an observation, in delete order.
+_STANDARD_DEPENDENTS = ("finding_observation", "finding_standard", "trend_insight_standard", "observation")
+
+
+def clear_standards(conn) -> None:
+    """For DB tests that load their own standards: inside the test's rolled-back transaction, hide the
+    dev database's standards and everything referencing them (saved reviews' observations and links,
+    trend insights), so `load()` can replace the table and counts are exact. Nothing is committed;
+    the real rows are back when the test's transaction rolls back."""
+    for table in (*_STANDARD_DEPENDENTS, "standard"):
+        conn.execute(f"DELETE FROM {table}")
+

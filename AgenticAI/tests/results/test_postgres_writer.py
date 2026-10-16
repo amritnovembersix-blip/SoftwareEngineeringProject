@@ -1,5 +1,5 @@
 import pytest
-from fakes import essay_row, label_row, std_row, write_essays, write_labels, xlsx_fixture
+from fakes import clear_standards, essay_row, label_row, std_row, write_essays, write_labels, xlsx_fixture
 
 from agentic.llm.fake import FakeEmbedder
 from agentic.models import (Finding, Observation, ReviewResult, StandardRef, SubmissionRef,
@@ -25,6 +25,7 @@ def seeded(db_conn, tmp_path):
         essay_row(student_hash="b" * 64, paragraphs=["Other."], course_id="classroom_1.01",
                   assignment_id="asg-classroom_1.01-essay1", submission_id="sub-2")])
     seed_demo(db_conn, tmp_path, "1.01")
+    clear_standards(db_conn)  # the dev DB may hold real standards and saved reviews
     rows = normalize_rows(read_xlsx(xlsx_fixture(tmp_path, [std_row("t.1"), std_row("t.2")])))
     load(db_conn, rows, FakeEmbedder())
     return db_conn, tmp_path

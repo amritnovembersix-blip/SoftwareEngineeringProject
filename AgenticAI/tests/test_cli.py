@@ -54,7 +54,7 @@ def test_review_unknown_or_ambiguous_student(cli_env, capsys, prefix):
 @pytest.fixture
 def cli_db(cli_env, db_conn, tmp_path, monkeypatch):
     """Run the CLI against db_conn (rolled back) so no data is left in the dev DB."""
-    from fakes import std_row, xlsx_fixture
+    from fakes import clear_standards, std_row, xlsx_fixture
 
     from agentic import wiring
     from agentic.llm.fake import FakeEmbedder
@@ -62,6 +62,7 @@ def cli_db(cli_env, db_conn, tmp_path, monkeypatch):
     from agentic.standards.loader import load, normalize_rows, read_xlsx
 
     monkeypatch.setattr(wiring, "connect", lambda s, autocommit=True: db_conn)
+    clear_standards(db_conn)  # the dev DB may hold real standards and saved reviews
     rows = normalize_rows(read_xlsx(xlsx_fixture(tmp_path, [std_row(s.code) for s in demo_standards()])))
     load(db_conn, rows, FakeEmbedder())
     return db_conn

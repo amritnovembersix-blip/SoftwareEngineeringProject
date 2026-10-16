@@ -1,5 +1,5 @@
 import pytest
-from fakes import std_row, xlsx_fixture
+from fakes import clear_standards, std_row, xlsx_fixture
 
 from agentic.llm.fake import FakeEmbedder
 from agentic.standards.loader import load, normalize_rows, read_xlsx
@@ -17,11 +17,7 @@ def _count(conn, where="true"):
 
 @pytest.fixture
 def clean(db_conn):
-    # The dev DB may hold other standards; remove them inside this (rolled-back) transaction
-    # so counts are exact.
-    db_conn.execute("DELETE FROM observation")
-    db_conn.execute("DELETE FROM finding_standard")
-    db_conn.execute("DELETE FROM standard")
+    clear_standards(db_conn)  # the dev DB may hold real standards and saved reviews
     return db_conn
 
 
