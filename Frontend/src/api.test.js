@@ -87,4 +87,26 @@ describe("Frontend API tests", () => {
     expect(shortId("")).toBe("");
     expect(shortId(null)).toBe("");
   });
+    it("returns an empty findings list when a student has no findings", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    }));
+
+    await expect(api.findings("student-1")).resolves.toEqual([]);
+  });
+
+  it("returns exactly one finding for a student", async () => {
+    const finding = {
+      id: "finding-1",
+      title: "Missing assignment",
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [finding],
+    }));
+
+    await expect(api.findings("student-1")).resolves.toEqual([finding]);
+  });
 });
