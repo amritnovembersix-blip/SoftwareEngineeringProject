@@ -1,0 +1,151 @@
+# Grade-band reviewer profiles (tuning tier). Each reviewer owns a grade range and a set of strands.
+# Every catalog standard must belong to exactly one reviewer in a profile, for any course grade 3-12.
+# grades = [first, last]; last may be "course" (the course grade's band upper bound).
+# prompt = "<name>.v<N>", a file under agentic/prompts/. model is optional (blank = LLM_MODEL).
+# reasoning is optional: default | low | medium | high (absent = LLM_REASONING). A run's --reasoning overrides it.
+
+[profiles.full]
+
+[[profiles.full.reviewers]]
+id = "3-5-language"
+grades = [3, 5]
+strands = ["L"]
+mode = "per_standard"
+prompt = "per_standard.v1"
+
+[[profiles.full.reviewers]]
+id = "3-5-writing"
+grades = [3, 5]
+strands = ["W"]
+mode = "per_standard"
+prompt = "per_standard.v1"
+
+[[profiles.full.reviewers]]
+id = "3-5-reading"
+grades = [3, 5]
+strands = ["R"]
+mode = "per_standard"
+prompt = "per_standard.v1"
+
+[[profiles.full.reviewers]]
+id = "6+-writing"
+grades = [6, "course"]
+strands = ["W"]
+mode = "progression"
+prompt = "progression.v2"
+
+[[profiles.full.reviewers]]
+id = "6+-reading"
+grades = [6, "course"]
+strands = ["RL", "RI"]
+mode = "progression"
+prompt = "progression.v2"
+
+[profiles.lean]
+
+[[profiles.lean.reviewers]]
+id = "3-5-all"
+grades = [3, 5]
+strands = ["L", "W", "R"]
+mode = "per_standard"
+prompt = "per_standard.v1"
+
+[[profiles.lean.reviewers]]
+id = "6+-all"
+grades = [6, "course"]
+strands = ["W", "RL", "RI"]
+mode = "progression"
+prompt = "progression.v2"
+
+# graded: grades 3-5 reviewed per grade and strand (low reasoning); grade 6+ by a downward progression search
+# (mode search, prompt progression.v3, high reasoning): one step per group per round, from the course grade
+# down to the first met step. full and lean keep mode progression, so their runs stay comparable.
+[profiles.graded]
+
+[[profiles.graded.reviewers]]
+id = "3-language"
+grades = [3, 3]
+strands = ["L"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "3-writing"
+grades = [3, 3]
+strands = ["W"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "3-reading"
+grades = [3, 3]
+strands = ["R"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "4-language"
+grades = [4, 4]
+strands = ["L"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "4-writing"
+grades = [4, 4]
+strands = ["W"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "4-reading"
+grades = [4, 4]
+strands = ["R"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "5-language"
+grades = [5, 5]
+strands = ["L"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "5-writing"
+grades = [5, 5]
+strands = ["W"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "5-reading"
+grades = [5, 5]
+strands = ["R"]
+mode = "per_standard"
+prompt = "per_standard.v2"
+reasoning = "low"
+
+[[profiles.graded.reviewers]]
+id = "6+-writing"
+grades = [6, "course"]
+strands = ["W"]
+mode = "search"
+prompt = "progression.v3"
+reasoning = "high"
+
+[[profiles.graded.reviewers]]
+id = "6+-reading"
+grades = [6, "course"]
+strands = ["RL", "RI"]
+mode = "search"
+prompt = "progression.v3"
+reasoning = "high"

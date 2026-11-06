@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from fakes import essay_row, label_row, write_essays, write_labels
 from fastapi.testclient import TestClient
@@ -200,12 +202,51 @@ def test_invalid_policy_is_422_and_unchanged(setup, field, value, code):
     assert client.get("/review-policy", headers=AUTH).json() == before
 
 
-def test_trend_analysis_is_501(setup):
-    client, _, _ = setup
-    r = client.post("/trend-analyses", json={}, headers=AUTH)
-    assert r.status_code == 501 and r.json()["error"]["code"] == "not_implemented"
-
-
 def test_course_reviewer_maps_classroom_course_to_version(setup):
     _, _, s = setup
     assert wiring.build_course_reviewer(s, "classroom_1.01").strands == ["W"]
+
+
+COURSEDIR = Path(__file__).parent.parent / "data" / "coursedir"
+
+
+def coursedir_setup():
+    """Client over the v2 course-folder fixture; returns (client, writer, data_dir string)."""
+    s = Settings(fake_llm=True, data_dir=COURSEDIR, lms_source="coursedir",
+                 agentic_api_token=TOKEN, webhook_secret=SECRET_HDR)
+    writer = MemoryWriter()
+    return TestClient(create_app(s, writer_factory=lambda _s: writer)), writer, str(COURSEDIR)
+
+
+def _coursedir_event(assignment_id, course_id="classroom_0.90-control", submission_id="s1"):
+    e = event(submission_id)
+    e["body"].update(assignment_id=assignment_id, course_id=course_id)
+    return e
+
+
+def test_webhook_for_multiple_choice_is_skipped():
+    client, writer, _ = coursedir_setup()
+    r = client.post("/events/submission-graded", json=_coursedir_event("ela9v2-a03@0.90-control"), headers=HOOK)
+    assert r.status_code == 202
+    run = client.get(f"/runs/{r.json()['run_id']}", headers=AUTH).json()
+    assert run["status"] == "succeeded" and (run["completed_count"], run["skipped_count"]) == (0, 1)
+    assert run["skips"] == [{"submission_id": "s1", "attempt": 1, "reason": "unsupported_type"}]
+    assert writer.saved == []
+
+
+def test_webhook_for_unknown_coursedir_course_fails_with_lookup_error():
+    client, _, data = coursedir_setup()
+    e = _coursedir_event("ela9v2-a01@0.90-control", course_id="classroom_9.99")
+    run_id = client.post("/events/submission-graded", json=e, headers=HOOK).json()["run_id"]
+    run = client.get(f"/runs/{run_id}", headers=AUTH).json()
+    assert run["status"] == "failed" and run["error"] == "LookupError"
+    assert data not in str(run)
+
+
+def test_webhook_for_unknown_coursedir_assignment_fails_with_lookup_error():
+    client, _, data = coursedir_setup()
+    e = _coursedir_event("ela9v2-a99@0.90-control")
+    run_id = client.post("/events/submission-graded", json=e, headers=HOOK).json()["run_id"]
+    run = client.get(f"/runs/{run_id}", headers=AUTH).json()
+    assert run["status"] == "failed" and run["error"] == "LookupError"
+    assert data not in str(run)

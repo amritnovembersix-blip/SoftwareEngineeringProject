@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from agentic.llm.base import T
+from agentic.llm.base import T, Usage
 
 
 class FakeChatModel:
@@ -15,15 +15,22 @@ class FakeChatModel:
         self,
         handlers: dict[type, Callable[[str, str], BaseModel]],
         model_name: str = "fake-chat",
+        reasoning: str = "default",  # accepted and ignored: the fake never thinks
     ):
         self.model_name = model_name
         self._handlers = handlers
         self.calls: list[tuple[type, str, str]] = []
 
-    def structured(self, system: str, user: str, schema: type[T]) -> T:
+    def complete(self, system: str, user: str, schema: type[T]) -> tuple[T, Usage]:
         self.calls.append((schema, system, user))
         handler = self._handlers[schema]  # KeyError for an unscripted schema
-        return handler(system, user)  # type: ignore[return-value]
+        out = handler(system, user)
+        usage = Usage(input_tokens=(len(system) + len(user)) // 4,
+                      output_tokens=len(out.model_dump_json()) // 4, estimated=True)
+        return out, usage  # type: ignore[return-value]
+
+    def structured(self, system: str, user: str, schema: type[T]) -> T:
+        return self.complete(system, user, schema)[0]
 
 
 class FakeEmbedder:

@@ -62,6 +62,7 @@ def test_blank_environment_value_keeps_default(clean_env):
 def test_defaults_live_inside_the_package_folder(clean_env):
     from agentic.config import PACKAGE_ROOT
 
+    clean_env.setenv("STANDARDS_FILE", "standards/mls-ela-writing-v1.xlsx")  # pinned: the default is now v2
     s = Settings.load(env_file=None)
     assert s.standards_file == PACKAGE_ROOT / "standards" / "mls-ela-writing-v1.xlsx"
     assert s.reports_dir == PACKAGE_ROOT / "local" / "reports"
@@ -85,3 +86,15 @@ def test_env_file_found_in_package_then_parent(tmp_path):
     assert find_env_file(pkg) == tmp_path / ".env"
     (pkg / ".env").write_text("LLM_RPM=8\n", encoding="utf-8")
     assert find_env_file(pkg) == pkg / ".env"
+
+
+def test_lms_source_default_blank_and_invalid(clean_env, tmp_path):
+    clean_env.delenv("LMS_SOURCE", raising=False)
+    assert Settings.load(env_file=None).lms_source == "jsonl"
+    clean_env.setenv("LMS_SOURCE", "  ")
+    assert Settings.load(env_file=None).lms_source == "jsonl"
+    clean_env.setenv("LMS_SOURCE", " CourseDir ")
+    assert Settings.load(env_file=None).lms_source == "coursedir"
+    clean_env.setenv("LMS_SOURCE", "canvas")
+    with pytest.raises(ValueError, match="LMS_SOURCE"):
+        Settings.load(env_file=None)

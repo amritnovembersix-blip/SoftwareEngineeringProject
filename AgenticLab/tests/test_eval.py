@@ -194,3 +194,8 @@ def test_markdown_report_has_tables(tmp_path):
     assert "| Student | Expected | Found | Possible misses | LLM calls |" in md
     assert "| ae665288 | 9-10.W.3.A.c | 9-10.RL.1.D | - | 1 |" in md
     assert "9-10.W.3.A.a ×1" in md
+
+
+def test_concept_of_is_the_production_definition():
+    from agentic.standards.codes import concept_of
+    assert ev.concept_of is concept_of

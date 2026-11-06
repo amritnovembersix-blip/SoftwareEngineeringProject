@@ -1,8 +1,12 @@
+from pathlib import Path
+
 import pytest
 from fakes import essay_row, label_row, write_essays, write_labels
 
 from agentic import wiring
 from agentic.config import Settings
+from agentic.lms.coursedir_client import CourseDirLMSClient
+from agentic.lms.jsonl_client import JsonlLMSClient
 from agentic.models import SubmissionRef
 
 PARAS = ["Secret essay sentence alpha.", "Secret essay sentence beta.", "Secret essay sentence gamma."]
@@ -181,3 +185,71 @@ def test_gemini_chats_share_one_rate_limit():
     assert a is not b and a._limiter is b._limiter
     other = wiring.build_chat(s.model_copy(update={"llm_rpm": 8}))
     assert other._limiter is not a._limiter
+
+
+COURSEDIR = Path(__file__).parent / "data" / "coursedir"
+
+
+def test_build_lms_picks_adapter_by_lms_source(tmp_path):
+    assert isinstance(wiring.build_lms(Settings(data_dir=tmp_path, classroom="1.01")), JsonlLMSClient)
+    s = Settings(data_dir=COURSEDIR, lms_source="coursedir")
+    assert isinstance(wiring.build_lms(s, "0.90-control"), CourseDirLMSClient)
+    with pytest.raises(ValueError):  # an unknown source never reaches build_lms
+        Settings(data_dir=tmp_path, lms_source="canvas")
+
+
+def test_build_course_lms_serves_a_coursedir_course():
+    s = Settings(data_dir=COURSEDIR, lms_source="coursedir")
+    assert wiring.build_course_lms(s, "classroom_0.90-control").get_course("classroom_0.90-control")
+
+
+def test_list_course_ids_for_coursedir(tmp_path):
+    s = Settings(data_dir=COURSEDIR, lms_source="coursedir")
+    assert wiring.list_course_ids(s) == ["classroom_0.90-control", "classroom_0.90-intervention"]
+    (tmp_path / "courses" / "no-course-json").mkdir(parents=True)
+    assert wiring.list_course_ids(Settings(data_dir=tmp_path, lms_source="coursedir")) == []
+    assert wiring.list_course_ids(Settings(data_dir=tmp_path / "missing", lms_source="coursedir")) == []
+
+
+def test_v2_chats_one_per_distinct_reviewer_model(monkeypatch):
+    """Ruling T9b: a reviewer's `model` gets its own chat; blank uses the default chat."""
+    from agentic.tuning import Profile, ReviewerSpec
+
+    def spec(id_, model):
+        return ReviewerSpec(id=id_, grades=(3, 5), strands=("L",), mode="per_standard",
+                            prompt="per_standard.v1", model=model)
+
+    built = []
+    monkeypatch.setattr(wiring, "build_chat", lambda st: built.append(st.llm_model) or object())
+    s = Settings(fake_llm=False, llm_provider="gemini", llm_model="base", llm_api_key="k")
+    profile = Profile(name="p", reviewers=[spec("a", None), spec("b", "m2"), spec("c", "m2"), spec("d", "m3")])
+    chats = wiring.build_v2_chats(s, profile)
+    assert sorted(chats) == ["m2", "m3"] and chats["m2"] is not chats["m3"] and sorted(built) == ["m2", "m3"]
+    assert wiring.build_v2_chats(s.model_copy(update={"fake_llm": True}), profile) == {}  # fakes: one chat
+
+
+def test_v2_chats_one_per_model_and_reasoning_pair_sharing_one_limiter():
+    """Task R: same model at two levels = two chats, one rate limit (the limiter is keyed by model)."""
+    from agentic.tuning import Profile, ReviewerSpec
+
+    def spec(id_, model, level):
+        return ReviewerSpec(id=id_, grades=(3, 5), strands=("L",), mode="per_standard",
+                            prompt="per_standard.v1", model=model, reasoning=level)
+
+    s = Settings(fake_llm=False, llm_provider="gemini", llm_model="base", llm_api_key="k", llm_reasoning="high")
+    profile = Profile(name="p", reviewers=[
+        spec("a", None, "high"),     # the default chat already runs at the global level
+        spec("b", None, "low"), spec("c", None, "low"), spec("d", None, "default"),
+        spec("e", "m2", "low"), spec("f", "m2", "default")])
+    chats = wiring.build_v2_chats(s, profile)
+    assert sorted(chats) == ["", "@low", "m2", "m2@low"]
+    assert chats["@low"].reasoning == "low" and chats["@low"].model_name == "base"
+    assert chats[""].reasoning == "default" and chats["m2@low"].model_name == "m2"
+    assert chats["@low"]._limiter is chats[""]._limiter is wiring.build_chat(s)._limiter
+    assert chats["m2"]._limiter is chats["m2@low"]._limiter
+
+
+def test_build_chat_uses_the_global_reasoning_level():
+    s = Settings(llm_provider="gemini", llm_model="m", llm_api_key="k", llm_reasoning="medium")
+    assert wiring.build_chat(s).reasoning == "medium"
+    assert wiring.build_chat(s.model_copy(update={"llm_reasoning": "default"})).reasoning == "default"

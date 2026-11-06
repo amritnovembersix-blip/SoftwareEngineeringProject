@@ -78,6 +78,18 @@ def test_verify_unavailable_on_any_exception():
     assert v.status == "unavailable"
 
 
+def test_verify_lets_daily_quota_escape():
+    import pytest
+
+    from agentic.llm.base import DailyQuotaExceeded
+
+    def boom(key):
+        raise DailyQuotaExceeded()
+
+    with pytest.raises(DailyQuotaExceeded):
+        run(FakeDecisionModel(boom))
+
+
 def test_verify_partial_or_invalid_answers():
     fake = FakeDecisionModel({"finding:A": 1.7, "met:C": 0.2})  # met:B missing
     f, m, v = run(fake)

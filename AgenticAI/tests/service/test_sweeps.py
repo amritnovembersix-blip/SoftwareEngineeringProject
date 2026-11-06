@@ -1,7 +1,7 @@
 import pytest
 from fakes import essay_row, label_row, write_essays, write_labels
 from fastapi.testclient import TestClient
-from test_app import AUTH, ESSAY, MemoryWriter
+from test_app import AUTH, ESSAY, MemoryWriter, coursedir_setup
 
 from agentic.config import Settings
 from agentic.service.app import create_app
@@ -227,37 +227,202 @@ def test_concurrent_sweep_counts_failures_and_skips(tmp_path):
 
 
 @pytest.mark.db
-def test_parallel_sweep_with_postgres_standards_builds_reviewers_safely(tmp_path, monkeypatch):
-    """Real-model path: reviewers share one standards connection. Building one registers pgvector
-    types inside a transaction, so concurrent builds used to fail (OutOfOrderTransactionNesting)."""
-    import threading
-    import time as _time
-
+def test_parallel_sweep_with_postgres_gives_each_review_its_own_connection(tmp_path, monkeypatch):
+    """Real-model path: a review builds its reviewer (which registers pgvector types inside a transaction)
+    on its own connection, so parallel reviews never interleave transactions on one connection
+    (OutOfOrderTransactionNesting). The connection is closed when the review ends."""
     from agentic import wiring
-    from agentic.standards.repository import PostgresStandards
 
     _class_of(tmp_path, 8)
-    s = Settings(fake_llm=False, data_dir=tmp_path, agentic_api_token="test-token", review_concurrency=5)
+    s = Settings(fake_llm=False, data_dir=tmp_path, agentic_api_token="test-token", review_concurrency=5,
+                 database_url_local=Settings.load().database_url_local)
     fake = s.model_copy(update={"fake_llm": True})
     real_build = wiring.build_course_reviewer
-    lock = threading.Lock()
-    building, overlap = [0], [False]
+    conns = []
 
-    def build(st, course_id, conn=None):
-        with lock:
-            building[0] += 1
-            overlap[0] = overlap[0] or building[0] > 1
-        try:
-            PostgresStandards(conn)  # what the real build does to the shared connection
-            _time.sleep(0.05)
-            return real_build(fake, course_id)  # fake models for the review itself
-        finally:
-            with lock:
-                building[0] -= 1
+    def build(st, course_id, conn=None, options=None):
+        assert conn is not None
+        conns.append(conn)
+        return real_build(fake, course_id, options=options)  # fake models for the review itself
 
     monkeypatch.setattr(wiring, "build_course_reviewer", build)
     writer = MemoryWriter()
     client = TestClient(create_app(s, writer_factory=lambda _s: writer))
     run = _run(client, {"course_id": "classroom_1.01"})
     assert run["error"] is None and run["completed_count"] == 8
-    assert not overlap[0]  # reviewers are built one at a time
+    assert len({id(c) for c in conns}) == 8 and all(c.closed for c in conns)
+
+
+def test_sweep_skips_multiple_choice_submissions():
+    client, writer, _ = coursedir_setup()
+    run = _run(client, {"course_id": "classroom_0.90-control"})
+    assert run["status"] == "succeeded"
+    assert (run["submission_count"], run["completed_count"], run["skipped_count"]) == (6, 4, 2)
+    assert {k["reason"] for k in run["skips"]} == {"unsupported_type"}
+    assert not any("a03" in r.submission_ref.assignment_id for r, _ in writer.saved)
+    assert len(writer.saved) == 4
+
+
+def test_sweep_of_a_course_without_multiple_choice_has_no_type_skips():
+    client, writer, _ = coursedir_setup()
+    run = _run(client, {"course_id": "classroom_0.90-intervention"})
+    assert (run["completed_count"], run["skipped_count"]) == (1, 0)
+
+
+def test_coursedir_sweep_of_unknown_course_is_422_without_paths():
+    client, writer, data = coursedir_setup()
+    r = client.post("/sweeps", json={"course_id": "classroom_9.99"}, headers=AUTH)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_course"
+    assert data not in r.text and writer.saved == []
+
+
+def test_coursedir_sweep_of_unknown_assignment_is_4xx_without_paths():
+    client, writer, data = coursedir_setup()
+    r = client.post("/sweeps", json={"course_id": "classroom_0.90-control",
+                                     "assignment_id": "ela9v2-a99@0.90-control"}, headers=AUTH)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_course"
+    assert data not in r.text and writer.saved == []
+
+
+def test_v2_coursedir_sweep_reviews_multiple_choice_instead_of_skipping():
+    from test_app import COURSEDIR, SECRET_HDR, TOKEN
+
+    s = Settings(fake_llm=True, data_dir=COURSEDIR, lms_source="coursedir", review_pipeline="v2",
+                 agentic_api_token=TOKEN, webhook_secret=SECRET_HDR)
+    writer = MemoryWriter()
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer))
+    run = _run(client, {"course_id": "classroom_0.90-control"})
+    assert run["status"] == "succeeded", run
+    assert (run["submission_count"], run["completed_count"], run["skipped_count"]) == (6, 6, 0)
+    mc = [r for r, _ in writer.saved if "a03" in r.submission_ref.assignment_id]
+    assert len(mc) == 2 and all(r.pipeline == "v2" and r.submission_type == "multiple_choice" for r in mc)
+
+
+def test_mvp_coursedir_sweep_still_skips_multiple_choice():
+    from test_app import COURSEDIR, SECRET_HDR, TOKEN
+
+    s = Settings(fake_llm=True, data_dir=COURSEDIR, lms_source="coursedir", review_pipeline="mvp",
+                 agentic_api_token=TOKEN, webhook_secret=SECRET_HDR)
+    writer = MemoryWriter()
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer))
+    run = _run(client, {"course_id": "classroom_0.90-control"})
+    assert (run["submission_count"], run["completed_count"], run["skipped_count"]) == (6, 4, 2)
+    assert {k["reason"] for k in run["skips"]} == {"unsupported_type"}
+
+
+def test_v2_webhook_for_multiple_choice_is_reviewed():
+    from test_app import COURSEDIR, HOOK, SECRET_HDR, TOKEN, _coursedir_event
+
+    s = Settings(fake_llm=True, data_dir=COURSEDIR, lms_source="coursedir", review_pipeline="v2",
+                 agentic_api_token=TOKEN, webhook_secret=SECRET_HDR)
+    writer = MemoryWriter()
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer))
+    e = _coursedir_event("ela9v2-a03@0.90-control")
+    e["body"]["user_id"] = "b2b2b2b2b2b2b2b2"
+    r = client.post("/events/submission-graded", json=e, headers=HOOK)
+    run = client.get(f"/runs/{r.json()['run_id']}", headers=AUTH).json()
+    assert run["status"] == "succeeded" and run["completed_count"] == 1, run
+    assert [r.submission_type for r, _ in writer.saved] == ["multiple_choice"]
+
+
+def _quota_env(tmp_path, monkeypatch):
+    """Three students; the fake chat raises DailyQuotaExceeded once `flag` is on, which the writer
+    turns on after the first review is saved. Reviews go through the real review_one path."""
+    from agentic.llm import fake as fakemod
+    from agentic.llm.base import DailyQuotaExceeded
+
+    _classroom(tmp_path, "1.01", STUDENTS)
+    flag = {"on": False}
+    real = fakemod.FakeChatModel.complete
+
+    def complete(self, *a, **k):
+        if flag["on"]:
+            raise DailyQuotaExceeded()
+        return real(self, *a, **k)
+
+    monkeypatch.setattr(fakemod.FakeChatModel, "complete", complete)
+
+    class W(MemoryWriter):
+        def save(self, result, trigger="manual"):
+            flag["on"] = flag["on"] or not flag.setdefault("tripped", False)
+            flag["tripped"] = True
+            return super().save(result, trigger)
+
+    return flag, W()
+
+
+@pytest.mark.parametrize("pipeline", ["v2", "mvp"])
+def test_daily_quota_pauses_the_sweep_and_leaves_the_rest_unclaimed(tmp_path, monkeypatch, pipeline):
+    flag, writer = _quota_env(tmp_path, monkeypatch)
+    s = Settings(fake_llm=True, data_dir=tmp_path, agentic_api_token="test-token", review_pipeline=pipeline)
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer))
+    run = _run(client, {"course_id": "classroom_1.01"})
+    assert run["status"] == "succeeded" and run["paused"] == "daily_quota" and run["error"] is None
+    assert (run["submission_count"], run["completed_count"]) == (3, 1)
+    assert len(writer.saved) == 1  # the rest were never saved or claimed
+    flag["on"] = False  # the next trigger resumes the unreviewed ones
+    again = _run(client, {"course_id": "classroom_1.01"})
+    assert again["paused"] is None and again["completed_count"] == 2 and again["skipped_count"] == 1
+
+
+def test_unpaused_sweep_reports_no_pause(env):
+    client, _, _ = env
+    assert _run(client, {"course_id": "classroom_1.01"})["paused"] is None
+
+
+@pytest.mark.parametrize("pipeline", ["v2", "mvp"])
+def test_daily_quota_on_a_webhook_run_pauses_it_and_the_next_event_resumes(tmp_path, monkeypatch, pipeline):
+    from test_app import HOOK, event
+
+    _quota_env(tmp_path, monkeypatch)
+    flag = {"on": True}  # out of quota from the start
+
+    from agentic.llm import fake as fakemod
+    from agentic.llm.base import DailyQuotaExceeded
+
+    real = fakemod.FakeChatModel.complete
+
+    def complete(self, *a, **k):
+        if flag["on"]:
+            raise DailyQuotaExceeded()
+        return real(self, *a, **k)
+
+    monkeypatch.setattr(fakemod.FakeChatModel, "complete", complete)
+    writer = MemoryWriter()
+    s = Settings(fake_llm=True, data_dir=tmp_path, agentic_api_token="test-token", webhook_secret="test-secret",
+                 review_pipeline=pipeline)
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer))
+    ev = event(submission_id="sub-1.01-a")
+    first = client.post("/events/submission-graded", json=ev, headers=HOOK).json()
+    run = client.get(f"/runs/{first['run_id']}", headers=AUTH).json()
+    assert run["status"] == "succeeded" and run["paused"] == "daily_quota"
+    assert run["completed_count"] == 0 and writer.saved == []
+    flag["on"] = False
+    second = client.post("/events/submission-graded", json=ev, headers=HOOK).json()
+    assert second["duplicate"] is False and second["run_id"] != first["run_id"]
+    run = client.get(f"/runs/{second['run_id']}", headers=AUTH).json()
+    assert run["paused"] is None and run["completed_count"] == 1 and len(writer.saved) == 1
+
+
+def test_daily_quota_during_verify_pauses_the_run(tmp_path, monkeypatch):
+    from agentic.decisions.fake import FakeDecisionModel
+    from agentic.llm.base import DailyQuotaExceeded
+
+    _classroom(tmp_path, "1.01", STUDENTS)
+
+    def boom(key):
+        raise DailyQuotaExceeded()
+
+    monkeypatch.setattr(wiring_module(), "build_decision", lambda st: FakeDecisionModel(boom))
+    s = Settings(fake_llm=True, data_dir=tmp_path, agentic_api_token="test-token", verify=True)
+    writer = MemoryWriter()
+    client = TestClient(create_app(s, writer_factory=lambda _s: writer))
+    run = _run(client, {"course_id": "classroom_1.01"})
+    assert run["paused"] == "daily_quota" and run["status"] == "succeeded" and run["completed_count"] == 0
+    assert writer.saved == []
+
+
+def wiring_module():
+    from agentic import wiring
+
+    return wiring

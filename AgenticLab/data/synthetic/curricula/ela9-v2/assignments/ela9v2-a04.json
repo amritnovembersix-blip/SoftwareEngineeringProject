@@ -1,0 +1,20 @@
+{
+ "id": "ela9v2-a04",
+ "module": "rl",
+ "week": 2,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "The Most Dangerous Game: how suspense is built",
+ "prompt": "Write one paragraph explaining how Connell builds suspense in the opening of the story. Discuss at least two of his choices, such as the island's name, the conversation about the crew, or the order in which events happen, and quote the text for each one.",
+ "text_id": "most-dangerous-game",
+ "due_offset": {
+  "week": 2,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.2.A"
+ ],
+ "notes": {},
+ "items": []
+}

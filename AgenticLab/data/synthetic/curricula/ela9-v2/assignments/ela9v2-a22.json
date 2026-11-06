@@ -1,0 +1,24 @@
+{
+ "id": "ela9v2-a22",
+ "module": "ri",
+ "week": 11,
+ "kind": "regular",
+ "type": "essay",
+ "title": "Rhetorical analysis: What to the Slave Is the Fourth of July?",
+ "prompt": "Write a multi-paragraph rhetorical analysis of Frederick Douglass's speech \"What to the Slave Is the Fourth of July?\" In your introduction, state Douglass's purpose. In the body, analyze how he uses rhetoric, such as rhetorical questions, repetition, and contrast, to advance that purpose, and evaluate whether his reasoning and evidence support his claims. Explain how the speech reflects its moment in July 1852, when slavery was still legal in the United States. Support each point with quotations, and end with a conclusion.",
+ "text_id": "fourth-of-july-douglass",
+ "due_offset": {
+  "week": 11,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.1.A",
+  "9-10.RI.2.B",
+  "9-10.RI.2.D",
+  "9-10.RI.3.C",
+  "9-10.W.2.A"
+ ],
+ "notes": {},
+ "items": []
+}

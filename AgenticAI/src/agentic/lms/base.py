@@ -23,6 +23,8 @@ class Submission(BaseModel):
     late: bool = False
     missing: bool = False
     excused: bool = False
+    # Lab draft (SASS v2 data): item answers, {"item_id", "text"} or {"item_id", "choice"}.
+    answers: list[dict] = []
 
 
 class Assignment(BaseModel):
@@ -32,6 +34,12 @@ class Assignment(BaseModel):
     description: str | None = None
     # Lab extension: per-standard focus notes (in Canvas, rubric criteria aligned to outcomes).
     notes: dict[str, str] = {}
+    # Lab draft (SASS v2 data): kind of work, class due date, and the items of a quiz-like assignment.
+    submission_type: Literal["essay", "paragraph", "short_answer", "multiple_choice"] = "essay"
+    due_at: datetime | None = None
+    items: list[dict] = []
+    # Lab draft: the strand of the curriculum module's text (RL literature, RI informational).
+    reading_strand: Literal["RL", "RI"] | None = None
 
 
 @runtime_checkable

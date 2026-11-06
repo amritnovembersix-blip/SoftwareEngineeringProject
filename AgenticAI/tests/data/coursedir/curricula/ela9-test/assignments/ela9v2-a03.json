@@ -1,0 +1,7 @@
+{"id": "ela9v2-a03", "module": "rl", "week": 3, "kind": "regular", "type": "multiple_choice",
+ "title": "Test multiple choice", "prompt": "Pick one answer.", "text_id": "test-story",
+ "due_offset": {"week": 3, "day": "wed"}, "assigned_to": null,
+ "targets": ["9-10.RL.1.B"], "notes": {},
+ "items": [{"id": "q1", "stem": "What did the fox find?",  "standard": "9-10.RL.1.B",
+  "choices": [{"key": "A", "text": "A key", "correct": true},
+   {"key": "B", "text": "A map", "misconception": "confuses the object with a related one", "standard": "9-10.RL.1.B"}]}]}

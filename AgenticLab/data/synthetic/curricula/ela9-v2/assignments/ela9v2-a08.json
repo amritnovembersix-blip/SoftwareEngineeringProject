@@ -1,0 +1,24 @@
+{
+ "id": "ela9v2-a08",
+ "module": "rl",
+ "week": 4,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "The Necklace and The Gift of the Magi: two characters' choices",
+ "prompt": "Write one paragraph comparing a choice Madame Loisel makes in \"The Necklace\" with a choice Della makes in \"The Gift of the Magi.\" Explain what each choice reveals about the character and how it moves the story toward its ending. O. Henry closes his story by comparing Della and Jim to the magi; explain what that comparison adds to your reading of Della's choice.",
+ "text_id": "gift-of-the-magi",
+ "extra_text_ids": [
+  "the-necklace"
+ ],
+ "due_offset": {
+  "week": 4,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.2.D",
+  "9-10.RL.3.B"
+ ],
+ "notes": {},
+ "items": []
+}

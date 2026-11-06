@@ -1,0 +1,48 @@
+{
+ "id": "ela9-v2",
+ "grade": 9,
+ "modules": [
+  {
+   "id": "rl",
+   "title": "Choices and Consequences",
+   "strand": "RL",
+   "weeks": [
+    1,
+    5
+   ]
+  },
+  {
+   "id": "ri",
+   "title": "Voices of Freedom",
+   "strand": "RI",
+   "weeks": [
+    6,
+    11
+   ]
+  }
+ ],
+ "assignments": [
+  "ela9v2-a01",
+  "ela9v2-a02",
+  "ela9v2-a03",
+  "ela9v2-a04",
+  "ela9v2-a05",
+  "ela9v2-a06",
+  "ela9v2-a07",
+  "ela9v2-a08",
+  "ela9v2-a09",
+  "ela9v2-a10",
+  "ela9v2-a11",
+  "ela9v2-a12",
+  "ela9v2-a13",
+  "ela9v2-a14",
+  "ela9v2-a15",
+  "ela9v2-a16",
+  "ela9v2-a17",
+  "ela9v2-a18",
+  "ela9v2-a19",
+  "ela9v2-a20",
+  "ela9v2-a21",
+  "ela9v2-a22"
+ ]
+}

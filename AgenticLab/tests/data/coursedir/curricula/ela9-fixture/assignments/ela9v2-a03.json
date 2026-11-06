@@ -1,0 +1,6 @@
+{"id": "ela9v2-a03", "module": "rl", "week": 2, "kind": "regular", "type": "short_answer",
+ "title": "Fixture short answer", "prompt": "Answer each question in two or three sentences.",
+ "text_id": "fixture-story", "due_offset": {"week": 2, "day": "wed"}, "assigned_to": null,
+ "targets": ["9-10.RL.1.A"], "notes": {},
+ "items": [{"id": "q1", "prompt": "What does the narrator want?", "standard": "9-10.RL.1.A"},
+           {"id": "q2", "prompt": "Which detail shows the narrator's mood?", "standard": "9-10.RL.1.A"}]}

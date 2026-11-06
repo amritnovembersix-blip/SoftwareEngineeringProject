@@ -1,0 +1,19 @@
+---
+title: "What to the Slave Is the Fourth of July?"
+author: "Frederick Douglass"
+year: 1852
+source_url: "https://www.gutenberg.org/ebooks/202"
+excerpt: true
+---
+
+Would you have me argue that man is entitled to liberty? that he is the rightful owner of his own body? You have already declared it. Must I argue the wrongfulness of slavery? Is that a question for republicans? Is it to be settled by the rules of logic and argumentation, as a matter beset with great difficulty, involving a doubtful application of the principle of justice, hard to be understood? How should I look to-day in the presence of Americans, dividing and subdividing a discourse, to show that men have a natural right to freedom, speaking of it relatively and positively, negatively and affirmatively? To do so, would be to make myself ridiculous, and to offer an insult to your understanding. There is not a man beneath the canopy of heaven that does not know that slavery is wrong for _him_.
+
+What! am I to argue that it is wrong to make men brutes, to rob them of their liberty, to work them without wages, to keep them ignorant of their relations to their fellow-men, to beat them with sticks, to flay their flesh with the lash, to load their limbs with irons, to hunt them with dogs, to sell them at auction, to sunder their families, to knock out their teeth, to burn their flesh, to starve them into obedience and submission to their masters? Must I argue that a system, thus marked with blood and stained with pollution, is wrong? No; I will not. I have better employment for my time and strength than such arguments would imply.
+
+What, then, remains to be argued? Is it that slavery is not divine; that God did not establish it; that our doctors of divinity are mistaken? There is blasphemy in the thought. That which is inhuman cannot be divine. Who can reason on such a proposition! They that can, may! I cannot. The time for such argument is past.
+
+At a time like this, scorching irony, not convincing argument, is needed. Oh! had I the ability, and could I reach the nation’s ear, I would to-day pour out a fiery stream of biting ridicule, blasting reproach, withering sarcasm, and stern rebuke. For it is not light that is needed, but fire; it is not the gentle shower, but thunder. We need the storm, the whirlwind, and the earthquake. The feeling of the nation must be quickened; the conscience of the nation must be roused; the propriety of the nation must be startled; the hypocrisy of the nation must be exposed; and its crimes against God and man must be proclaimed and denounced.
+
+What to the American slave is your Fourth of July? I answer, a day that reveals to him, more than all other days in the year, the gross injustice and cruelty to which he is the constant victim. To him, your celebration is a sham; your boasted liberty, an unholy license; your national greatness, swelling vanity; your sounds of rejoicing are empty and heartless; your denunciations of tyrants, brass-fronted impudence; your shouts of liberty and equality, hollow mockery; your prayers and hymns, your sermons and thanksgivings, with all your religious parade and solemnity, are to him mere bombast, fraud, deception, impiety, and hypocrisy—a thin veil to cover up crimes which would disgrace a nation of savages. There is not a nation on the earth guilty of practices more shocking and bloody, than are the people of these United States, at this very hour.
+
+Go where you may, search where you will, roam through all the monarchies and despotisms of the old world, travel through South America, search out every abuse, and when you have found the last, lay your facts by the side of the every-day practices of this nation, and you will say with me, that, for revolting barbarity and shameless hypocrisy, America reigns without a rival.

@@ -1,0 +1,37 @@
+{
+ "id": "ela9v2-a07",
+ "module": "rl",
+ "week": 4,
+ "kind": "regular",
+ "type": "short_answer",
+ "title": "The Gift of the Magi: irony",
+ "prompt": "Answer each question in two or three complete sentences. Quote the text to support your answers.",
+ "text_id": "gift-of-the-magi",
+ "due_offset": {
+  "week": 4,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.2.C",
+  "9-10.RL.2.B"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RL.2.B",
+   "prompt": "The narrator calls Della and Jim \"two foolish children\" and then says they are \"the wisest.\" What is the narrator's attitude toward the couple, and how does it shift in the last paragraph?"
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RL.2.C",
+   "prompt": "O. Henry writes that Della \"leaped up like a little singed cat.\" What does this comparison suggest about her feelings, and how does it affect the tone of the scene?"
+  },
+  {
+   "id": "q3",
+   "standard": "9-10.RL.1.A",
+   "prompt": "Jim says their presents are \"too nice to use just at present.\" Explain the irony in this line. What do both characters know at this point that makes it ironic?"
+  }
+ ]
+}

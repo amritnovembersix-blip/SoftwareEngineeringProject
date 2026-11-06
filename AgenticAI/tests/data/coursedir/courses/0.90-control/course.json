@@ -1,0 +1,3 @@
+{"id": "classroom_0.90-control", "name": "Test ELA 9 (control)", "grade": 9, "subject": "ela",
+ "teacher_id": "teacher-test", "period": 1, "start_date": "2027-01-11", "arm": "control",
+ "curriculum": "ela9-test", "twin": "0.90-intervention"}

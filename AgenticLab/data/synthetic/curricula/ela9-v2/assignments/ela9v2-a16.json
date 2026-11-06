@@ -1,0 +1,20 @@
+{
+ "id": "ela9v2-a16",
+ "module": "ri",
+ "week": 8,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "Ain't I a Woman?: evaluate the argument",
+ "prompt": "Write one paragraph evaluating Sojourner Truth's argument. State her central claim, judge whether her reasoning is valid and her evidence relevant and sufficient, and quote at least two pieces of evidence.",
+ "text_id": "aint-i-a-woman",
+ "due_offset": {
+  "week": 8,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.2.D"
+ ],
+ "notes": {},
+ "items": []
+}

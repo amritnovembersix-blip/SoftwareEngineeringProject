@@ -1,0 +1,48 @@
+{
+ "id": "ela9v2-i02",
+ "module": "ri",
+ "week": 8,
+ "kind": "intervention",
+ "type": "short_answer",
+ "title": "Ain't I a Woman?: evidence and inference",
+ "prompt": "Answer each question in two or three sentences. Quote the speech to support your answer.",
+ "text_id": "aint-i-a-woman",
+ "extra_text_ids": [],
+ "due_offset": {
+  "week": 8,
+  "day": "fri"
+ },
+ "assigned_to": [
+  "649f00e5b43cb38b88c5c4196fb272a9bc533e42ab298af2d249cbac3237760e",
+  "713b43043a214a3b2f4d5c31e2506b8560209e5486917381111fa0eeaed8927e",
+  "306ad6db4442a5387ebc22811690f862c334ca3be383063345135c221c783011"
+ ],
+ "targets": [
+  "9-10.RI.1.A",
+  "9-10.RI.2.D"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RI.1.A",
+   "prompt": "What can you infer about how the audience treated Truth from what she says about the man who spoke before her? Quote the line that supports your inference.",
+   "stem": null,
+   "choices": []
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RI.1.A",
+   "prompt": "Which detail from her own life is the strongest support for her claim? Explain why it is stronger than another detail she gives.",
+   "stem": null,
+   "choices": []
+  },
+  {
+   "id": "q3",
+   "standard": "9-10.RI.2.D",
+   "prompt": "Truth answers the argument about intellect and the argument about Christ. Which answer is more convincing, and what evidence makes it so?",
+   "stem": null,
+   "choices": []
+  }
+ ]
+}

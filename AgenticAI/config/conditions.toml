@@ -1,0 +1,10 @@
+# Conditions the reviewer probes for, keyed by concept code without the grade (strand.bigIdea.concept).
+# Mastery shows when the skill holds under these conditions, not only in easy sentences.
+
+"L.1.A" = ["intervening phrase", "compound subject", "tense shift", "pronoun far from antecedent"]
+"L.1.B" = ["irregular forms", "long sentences", "multiple clauses", "mixed verb tenses"]
+"W.3.A" = ["unclear opening", "abrupt transitions", "no closing", "event order unclear"]
+"W.2.A" = ["no central idea", "off-topic details", "weak conclusion", "missing transitions"]
+"RL.1.A" = ["unsupported claim", "vague evidence", "plot summary only", "inference not explained"]
+"RI.1.A" = ["unsupported claim", "vague evidence", "main idea restated only", "inference not explained"]
+"R.1.A" = ["literal restatement only", "no text evidence", "inference not explained", "details out of order"]

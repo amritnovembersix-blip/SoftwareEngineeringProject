@@ -1,0 +1,88 @@
+[
+ {
+  "id": "iv1",
+  "week": 4,
+  "kind": "class_lesson",
+  "students": "all",
+  "families": [
+   "sentence_boundaries"
+  ],
+  "standards": [
+   "3.L.1.A.c",
+   "4.L.1.A.g",
+   "4.L.1.A.i",
+   "4.L.1.B.c",
+   "5.L.1.A.e",
+   "5.L.1.B.b",
+   "5.L.1.B.c",
+   "6.W.3.A.b",
+   "6.W.3.A.c",
+   "7.W.3.A.b",
+   "7.W.3.A.c",
+   "8.W.3.A.b",
+   "8.W.3.A.c",
+   "9-10.W.3.A.b",
+   "9-10.W.3.A.c"
+  ],
+  "assignment_id": null,
+  "description": "Whole-class mini-lesson on compound and complex sentences and their commas."
+ },
+ {
+  "id": "iv2",
+  "week": 4,
+  "kind": "individual",
+  "students": [
+   "746314ec09700cb7cebec6544aef8ff1fba3b0fa93a72f39d0f902d607891581",
+   "47263a68be4e677af1d752949b244ee0d3364f5a9568ca493a686eb44a506eaa",
+   "fe466587c0365b5037015aaf03f44be8b91a1ff659e0cd7744432d1ae975d79c",
+   "1910282469a7d5e67b3e79a8248fb0b7e374ace619779b4fe2cbfa9fed5437d4"
+  ],
+  "families": [
+   "agreement"
+  ],
+  "standards": [
+   "3.L.1.A.e",
+   "3.L.1.A.g",
+   "4.L.1.A.e",
+   "5.L.1.A.c",
+   "5.L.1.A.d",
+   "6.W.3.A.c",
+   "7.W.3.A.c",
+   "8.W.3.A.c",
+   "9-10.W.3.A.c"
+  ],
+  "assignment_id": "ela9v2-i01",
+  "description": "One-on-one conferences on subject-verb, pronoun and tense agreement, with a revision task."
+ },
+ {
+  "id": "iv3",
+  "week": 8,
+  "kind": "small_group",
+  "students": [
+   "649f00e5b43cb38b88c5c4196fb272a9bc533e42ab298af2d249cbac3237760e",
+   "713b43043a214a3b2f4d5c31e2506b8560209e5486917381111fa0eeaed8927e",
+   "306ad6db4442a5387ebc22811690f862c334ca3be383063345135c221c783011"
+  ],
+  "families": [
+   "evidence"
+  ],
+  "standards": [
+   "3.R.1.A.b",
+   "4.R.1.A.a",
+   "5.R.1.A.a",
+   "5.R.1.A.b",
+   "5.W.2.A.e",
+   "6.RL.1.A",
+   "6.RI.1.A",
+   "7.RL.1.A",
+   "7.RI.1.A",
+   "8.RL.1.A",
+   "8.RI.1.A",
+   "9-10.RL.1.A",
+   "9-10.RI.1.A",
+   "9-10.RI.2.D"
+  ],
+  "assignment_id": "ela9v2-i02",
+  "description": "Small-group session on choosing the strongest evidence and explaining the inference it supports."
+ }
+]

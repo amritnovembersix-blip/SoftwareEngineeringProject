@@ -1,0 +1,322 @@
+{
+ "id": "ela9v2-a01",
+ "module": "rl",
+ "week": 1,
+ "kind": "regular",
+ "type": "multiple_choice",
+ "title": "The Most Dangerous Game: inference, evidence and theme",
+ "prompt": "Read the excerpt, then choose the best answer for each question.",
+ "text_id": "most-dangerous-game",
+ "due_offset": {
+  "week": 1,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.1.A",
+  "9-10.RL.1.D"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RL.1.A",
+   "stem": "\"The world is made up of two classes\u2014the hunters and the huntees. Luckily, you and I are hunters.\" What can you infer about Rainsford from these lines?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "He feels sure he will always have the power, never be the prey",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "He secretly fears being hunted himself",
+     "misconception": "infers a hidden fear, though he laughs and says \"Luckily\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "He agrees with Whitney that the jaguar feels fear",
+     "misconception": "overlooks his reply that jaguars have \"no understanding\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "He thinks hunting is unfair to animals",
+     "misconception": "credits Rainsford with Whitney's sympathy for the jaguar",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q2",
+   "standard": "8.RL.1.A",
+   "stem": "Which detail most strongly supports the idea that the sailors fear Ship-Trap Island?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"The sea was as flat as a plate-glass window.\"",
+     "misconception": "cites a weather detail that says nothing about the crew",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"Cannibals?\" suggested Rainsford.",
+     "misconception": "cites Rainsford's guess, which is no evidence of the sailors' feelings",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "\"It will be light enough in Rio.\"",
+     "misconception": "cites a line about their destination, not about the island",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"Didn't you notice that the crew's nerves seemed a bit jumpy to-day?\"",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q3",
+   "standard": "9-10.RL.1.D",
+   "stem": "Which statement best expresses a theme developed in this excerpt?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "People who hold power may dismiss the fear and suffering of those weaker than they are",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "The excerpt is about hunting",
+     "misconception": "names a topic instead of a statement about life",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "C",
+     "text": "Rainsford and Whitney sail toward Rio on a yacht",
+     "misconception": "retells the situation instead of stating a theme",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "D",
+     "text": "Sailors are always right about danger",
+     "misconception": "turns Whitney's \"sometimes I think\" into an absolute rule",
+     "standard": "9-10.RL.1.D"
+    }
+   ]
+  },
+  {
+   "id": "q4",
+   "standard": "9-10.RL.1.A",
+   "stem": "Rainsford answers Whitney's story of the \"mental chill\" with \"Pure imagination\" and says \"One superstitious sailor can taint the whole ship's company with his fear.\" What can you infer?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "He believes the dread spreads from person to person, not from anything real about the island",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "He admits that he feels the chill too",
+     "misconception": "contradicts his dismissal of the chill as \"Pure imagination\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "He thinks Captain Nielsen should be replaced",
+     "misconception": "infers a judgment of the captain the text never gives",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "He believes the island is truly evil",
+     "misconception": "reverses his claim that the dread is imagined",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q5",
+   "standard": "8.RL.1.A",
+   "stem": "Which detail most strongly supports the inference that Rainsford is a skilled hunter?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"The best sport in the world,\" agreed Rainsford.",
+     "misconception": "cites his enthusiasm, which shows liking, not skill",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"I'm going to smoke another pipe up on the after deck.\"",
+     "misconception": "cites a habit that says nothing about hunting",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "\"I've seen you pick off a moose moving in the brown fall bush at four hundred yards\"",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "\"Cannibals?\" suggested Rainsford.",
+     "misconception": "cites a guess about the island, not his skill",
+     "standard": "8.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q6",
+   "standard": "9-10.RL.1.D",
+   "stem": "How does the conversation about the jaguar develop a theme of the excerpt?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "It shows that both men agree animals feel nothing",
+     "misconception": "misses Whitney's point that jaguars understand fear",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "B",
+     "text": "It is small talk with nothing to do with the story's ideas",
+     "misconception": "misses how the dialogue introduces the theme",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "C",
+     "text": "It shows Rainsford changing his mind about hunting",
+     "misconception": "reads a change he never makes; he says \"Be a realist\"",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "D",
+     "text": "It sets Whitney's sympathy for the hunted against Rainsford's belief that only the hunter matters",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q7",
+   "standard": "9-10.RL.1.A",
+   "stem": "Taking the whole conversation together, what can you infer about how Whitney differs from Rainsford?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Whitney is a braver hunter than Rainsford",
+     "misconception": "infers bravery no detail supports; Whitney admits \"a sudden dread\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "Whitney is open to fear and feeling, while Rainsford dismisses both",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "Whitney dislikes hunting and wants to go home",
+     "misconception": "overlooks Whitney's \"Great sport, hunting\" and the Amazon plans",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "The two men are enemies",
+     "misconception": "reads friendly teasing as hostility; they part with \"Good-night\"",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q8",
+   "standard": "8.RL.1.A",
+   "stem": "Which detail most strongly supports the inference that Whitney himself was uneasy near the island?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"Sailors have a curious dread of the place.\"",
+     "misconception": "cites the sailors' fear, not Whitney's own",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"We should have some good hunting up the Amazon.\"",
+     "misconception": "cites his plans, which show no unease",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "\"Well, I think I'll turn in now, Rainsford.\"",
+     "misconception": "cites his bedtime, which shows tiredness, not unease",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"I did feel something like a sudden chill.\"",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q9",
+   "standard": "9-10.RL.1.D",
+   "stem": "Which is the best objective summary of the excerpt?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Arrogant Rainsford mocks his kind friend and deserves what is coming.",
+     "misconception": "adds personal judgment, so the summary is not objective",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "B",
+     "text": "Sailing past a feared island at night, Whitney and Rainsford argue about whether hunted animals feel fear; after Whitney goes to bed, Rainsford hears three gunshots.",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "Rainsford hears someone fire a gun three times in the dark.",
+     "misconception": "gives only the last event and leaves out the rest",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "D",
+     "text": "Whitney falls overboard near Ship-Trap Island.",
+     "misconception": "adds an event that never happens in the excerpt",
+     "standard": "9-10.RL.1.D"
+    }
+   ]
+  },
+  {
+   "id": "q10",
+   "standard": "9-10.RL.1.A",
+   "stem": "At the end of the excerpt, Rainsford hears a gun fired three times \"off to the right.\" What can the reader infer?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Whitney is firing from the deck",
+     "misconception": "overlooks that Whitney has already gone to bed",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "Rainsford only imagined the sound",
+     "misconception": "ignores that his expert ears \"could not be mistaken\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "Someone is on or near the island Whitney pointed out to the right",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "The crew is starting the jaguar hunt",
+     "misconception": "moves the jaguar hunt planned for the Amazon to this moment",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  }
+ ]
+}

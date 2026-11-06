@@ -70,3 +70,18 @@ def test_report_writes_given_models(tmp_path):
     path = reports.write_review_report(res, tmp_path / "r", models=reviewer.models)
     assert json.loads(path.read_text(encoding="utf-8"))["models"] == {
         "chat": "fake-chat", "embedder": "fake-embed", "decision": "fake-jev"}
+
+
+def test_report_never_writes_the_trace(tmp_path):
+    """The trace holds raw model replies, which may echo student text: it never goes into a report."""
+    write_labels(tmp_path, "1.01", [label_row(grade=9)])
+    write_essays(tmp_path, "1.01", [essay_row(paragraphs=PARAS, course_id="classroom_1.01",
+                                              assignment_id="asg-classroom_1.01-essay1")])
+    from agentic.review.v2.options import ReviewOptions
+    from agentic.review.v2.run import review_one
+
+    s = Settings(fake_llm=True, data_dir=tmp_path, classroom="1.01", review_pipeline="v2")
+    res = review_one(s, "classroom_1.01", "asg-classroom_1.01-essay1", "a" * 64, ReviewOptions())
+    assert res.trace["reviewers"]
+    body = reports.write_review_report(res, tmp_path / "out").read_text(encoding="utf-8")
+    assert "trace" not in json.loads(body) and '"reply"' not in body

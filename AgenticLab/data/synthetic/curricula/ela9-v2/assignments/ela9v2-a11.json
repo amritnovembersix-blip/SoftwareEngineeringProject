@@ -1,0 +1,322 @@
+{
+ "id": "ela9v2-a11",
+ "module": "ri",
+ "week": 6,
+ "kind": "regular",
+ "type": "multiple_choice",
+ "title": "The Gettysburg Address: central ideas, inference and word meaning",
+ "prompt": "Read the excerpt, then choose the best answer for each question.",
+ "text_id": "gettysburg-address",
+ "due_offset": {
+  "week": 6,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.1.D",
+  "9-10.RI.1.A"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "6.RI.1.B",
+   "stem": "Lincoln says, \"It is altogether fitting and proper that we should do this.\" What does \"fitting\" mean here?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "the right size, like clothes",
+     "misconception": "uses the clothing meaning of \"fitting\", ignoring \"and proper\"",
+     "standard": "6.RI.1.B"
+    },
+    {
+     "key": "B",
+     "text": "right and suitable",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "exciting and fun",
+     "misconception": "ignores the solemn setting of honoring the dead",
+     "standard": "6.RI.1.B"
+    },
+    {
+     "key": "D",
+     "text": "about to happen soon",
+     "misconception": "guesses from \"should do this\" instead of the pairing with \"proper\"",
+     "standard": "6.RI.1.B"
+    }
+   ]
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RI.1.D",
+   "stem": "Which statement best expresses a central idea of the address?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Lincoln's speech will be remembered forever",
+     "misconception": "reverses his point that the world will \"little note\" his words",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "B",
+     "text": "The cemetery must be finished quickly",
+     "misconception": "takes the occasion of the speech for its central idea",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "C",
+     "text": "Gettysburg was the most important battle of the war",
+     "misconception": "supplies a claim about the battle Lincoln never makes",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "D",
+     "text": "The living must honor the dead by finishing their work and keeping government by the people alive",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q3",
+   "standard": "9-10.RI.1.A",
+   "stem": "Lincoln says the soldiers consecrated the ground \"far above our poor power to add or detract.\" What does this imply about the speakers' role at the ceremony?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "The speakers are too poor to pay for the cemetery",
+     "misconception": "takes \"poor\" as money, missing the comparison to the soldiers' deeds",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "Their words can add nothing to what the soldiers' sacrifice already did",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "The speakers could take the ground's honor away",
+     "misconception": "misses \"far above\": nothing they say can detract",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "Lincoln thinks the other speakers spoke badly",
+     "misconception": "infers criticism of other speakers that no line supports",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q4",
+   "standard": "6.RI.1.B",
+   "stem": "\"The world will little note, nor long remember what we say here.\" What does \"note\" mean in this sentence?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "notice",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "a short written message",
+     "misconception": "uses the common noun meaning of \"note\", ignoring the sentence",
+     "standard": "6.RI.1.B"
+    },
+    {
+     "key": "C",
+     "text": "a musical sound",
+     "misconception": "picks the music meaning of \"note\", which doesn't fit \"what we say\"",
+     "standard": "6.RI.1.B"
+    },
+    {
+     "key": "D",
+     "text": "paper money",
+     "misconception": "takes \"note\" as a bank note, a meaning the sentence can't support",
+     "standard": "6.RI.1.B"
+    }
+   ]
+  },
+  {
+   "id": "q5",
+   "standard": "9-10.RI.1.D",
+   "stem": "Which two central ideas does Lincoln develop together in the address?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Honoring the soldiers who died, and the living's duty to keep a nation built on liberty and equality",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "The history of the battle, and the plans for the train trip",
+     "misconception": "treats the occasion and the cover note's details as central ideas",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "C",
+     "text": "Lincoln's own career, and the cost of the war",
+     "misconception": "names ideas the address never develops",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "D",
+     "text": "The sadness of war, and the beauty of the battlefield",
+     "misconception": "picks a mood and a setting instead of developed ideas",
+     "standard": "9-10.RI.1.D"
+    }
+   ]
+  },
+  {
+   "id": "q6",
+   "standard": "6.RI.1.B",
+   "stem": "Lincoln says, \"we can not consecrate... this ground.\" In this sentence, \"consecrate\" means",
+   "choices": [
+    {
+     "key": "A",
+     "text": "capture in battle",
+     "misconception": "guesses from the battlefield setting instead of the pairing with \"hallow\"",
+     "standard": "6.RI.1.B"
+    },
+    {
+     "key": "B",
+     "text": "build on",
+     "misconception": "reads \"consecrate\" as \"construct\", ignoring \"dedicate\" and \"hallow\"",
+     "standard": "6.RI.1.B"
+    },
+    {
+     "key": "C",
+     "text": "describe in words",
+     "misconception": "guesses from the speeches being given, not the word's religious meaning",
+     "standard": "6.RI.1.B"
+    },
+    {
+     "key": "D",
+     "text": "make holy",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q7",
+   "standard": "9-10.RI.1.A",
+   "stem": "Lincoln says, \"It is for us the living, rather, to be dedicated here to the unfinished work.\" What can you infer about his purpose?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "He wants the audience to finish building the cemetery",
+     "misconception": "takes \"unfinished work\" as construction",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "He believes the war is already over",
+     "misconception": "contradicts \"Now we are engaged in a great civil war\"",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "He turns a ceremony for the dead into a call to carry on the nation's cause",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "He blames the living for the soldiers' deaths",
+     "misconception": "infers blame that no line in the address supports",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q8",
+   "standard": "9-10.RI.1.D",
+   "stem": "The address moves from \"Four score and seven years ago\" to the present war to \"a new birth of freedom.\" How does this order develop its central idea?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "It links past, present and future to show the living must carry the founders' ideals forward",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "It tells the battle's events in time order",
+     "misconception": "takes the time order for a battle account; no battle events appear",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "C",
+     "text": "It shows the founding is the main idea and the war a side detail",
+     "misconception": "weights one part instead of analyzing how the parts build together",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "D",
+     "text": "It shows Lincoln changing his mind during the speech",
+     "misconception": "reads the shift in time as a change of opinion",
+     "standard": "9-10.RI.1.D"
+    }
+   ]
+  },
+  {
+   "id": "q9",
+   "standard": "9-10.RI.1.A",
+   "stem": "What can you infer from Lincoln's note to Secretary Chase, printed before the address?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Chase helped write the address",
+     "misconception": "infers co-authorship only because the note is addressed to him",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "The trip to Gettysburg was still being arranged two days before the speech",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "Lincoln did not want to go to Gettysburg",
+     "misconception": "reads the not-yet-fixed start time as reluctance",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "The address was given on November 17",
+     "misconception": "confuses the note's date with the address's November 19",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q10",
+   "standard": "9-10.RI.1.D",
+   "stem": "Which is the best objective summary of the address?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "In a moving and beautiful speech, Lincoln proves he is a great leader.",
+     "misconception": "adds praise and opinion, so the summary is not objective",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "B",
+     "text": "Lincoln tells Secretary Chase that a train will take them to Gettysburg.",
+     "misconception": "summarizes the cover note instead of the address",
+     "standard": "9-10.RI.1.D"
+    },
+    {
+     "key": "C",
+     "text": "Dedicating a battlefield cemetery, Lincoln says the soldiers made the ground sacred and the living must finish their work so government by the people survives.",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "Lincoln says the world will not remember his speech.",
+     "misconception": "gives one detail and leaves out the central ideas",
+     "standard": "9-10.RI.1.D"
+    }
+   ]
+  }
+ ]
+}

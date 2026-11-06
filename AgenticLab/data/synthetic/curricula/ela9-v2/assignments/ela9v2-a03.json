@@ -1,0 +1,37 @@
+{
+ "id": "ela9v2-a03",
+ "module": "rl",
+ "week": 2,
+ "kind": "regular",
+ "type": "short_answer",
+ "title": "The Most Dangerous Game: conflict and character",
+ "prompt": "Answer each question in two or three complete sentences. Quote the text to support your answers.",
+ "text_id": "most-dangerous-game",
+ "due_offset": {
+  "week": 2,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.2.D",
+  "9-10.RL.1.A"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RL.2.D",
+   "prompt": "Rainsford and Whitney disagree about whether animals feel fear. Explain each man's view and what the disagreement shows about Rainsford."
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RL.1.A",
+   "prompt": "Whitney says the crew's nerves seemed \"a bit jumpy.\" What can you infer about the island from the way the sailors behave? Quote one detail that supports your inference."
+  },
+  {
+   "id": "q3",
+   "standard": "9-10.RL.2.D",
+   "prompt": "Rainsford calls Whitney's \"mental chill\" \"Pure imagination.\" How could this attitude set Rainsford up for conflict later in the story? Use what he says in the opening to explain."
+  }
+ ]
+}

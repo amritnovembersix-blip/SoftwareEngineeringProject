@@ -1,0 +1,321 @@
+{
+ "id": "ela9v2-a09",
+ "module": "rl",
+ "week": 5,
+ "kind": "regular",
+ "type": "multiple_choice",
+ "title": "The Monkey's Paw: inference and evidence",
+ "prompt": "Read the excerpt, then choose the best answer for each question.",
+ "text_id": "monkeys-paw",
+ "due_offset": {
+  "week": 5,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.1.A"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RL.1.A",
+   "stem": "When Mr. White asks about the monkey's paw, Morris answers \"hastily\": \"Nothing. Leastways nothing worth hearing.\" What does his reaction suggest?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "He wants to sell the paw to Mr. White",
+     "misconception": "takes his later, abandoned idea of selling it as his aim here",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "He is uneasy about the paw and would rather not discuss it",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "The paw really is a worthless trinket",
+     "misconception": "accepts \"nothing worth hearing\" at face value, missing his evasion",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "He has forgotten the story",
+     "misconception": "ignores that he answers \"hastily\" to avoid the topic",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q2",
+   "standard": "8.RL.1.A",
+   "stem": "Which detail most strongly supports the inference that Morris regrets using his own wishes?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"It had a spell put on it by an old fakir,\" said the sergeant-major.",
+     "misconception": "cites a fact about the spell, not Morris's feelings about wishing",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"Sounds like the Arabian Nights,\" said Mrs. White.",
+     "misconception": "cites Mrs. White's joke, which shows nothing about Morris",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "\"I have,\" he said, quietly, and his blotchy face whitened.",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "His host filled it for him.",
+     "misconception": "cites a host's courtesy that says nothing about regret",
+     "standard": "8.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q3",
+   "standard": "6.RL.1.A",
+   "stem": "According to Morris, why did the fakir put a spell on the paw?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "To make three men rich",
+     "misconception": "adds a purpose that Morris never states",
+     "standard": "6.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "To protect soldiers serving in India",
+     "misconception": "ties the spell to Morris's army service, which the text never does",
+     "standard": "6.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "To show that fate rules people's lives and that those who interfere with it are sorry",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "To punish Morris for a crime",
+     "misconception": "invents a crime; the text gives no reason to punish Morris",
+     "standard": "6.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q4",
+   "standard": "9-10.RL.1.A",
+   "stem": "Morris says the first owner's third wish \"was for death.\" What can you infer from this?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "The first owner wished for Morris to die",
+     "misconception": "invents a target; the text says only \"for death\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "Morris made that wish himself",
+     "misconception": "overlooks that the wish belonged to \"the first man\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "The paw grants only happy wishes",
+     "misconception": "contradicts \"It has caused enough mischief already\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "The first owner's earlier wishes probably brought him misery",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q5",
+   "standard": "6.RL.1.A",
+   "stem": "Why does Morris say people won't buy the paw?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Some think it is a fairy tale, and others want to try it before paying",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "It costs too much",
+     "misconception": "gives a reason with no support in Morris's words",
+     "standard": "6.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "All of its wishes are used up",
+     "misconception": "takes the reason from Mr. White's remark, not Morris's answer",
+     "standard": "6.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "It is too ugly to sell",
+     "misconception": "infers a reason from Mrs. White's grimace instead of Morris's words",
+     "standard": "6.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q6",
+   "standard": "9-10.RL.1.A",
+   "stem": "What can the reader infer from Morris throwing the paw onto the fire?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "He believes the paw is dangerous and wants it destroyed",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "He is angry at Mr. White for asking questions",
+     "misconception": "infers anger that no detail in the text supports",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "He dropped it by accident",
+     "misconception": "overlooks that he \"suddenly threw it\" and says \"Better let it burn\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "He wants to prove the paw cannot burn",
+     "misconception": "invents a test, though he tells White to let it burn",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q7",
+   "standard": "8.RL.1.A",
+   "stem": "Which detail most strongly supports the inference that Morris thinks the paw is dangerous?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"To look at, it's just an ordinary little paw, dried to a mummy.\"",
+     "misconception": "cites its plain look, which suggests no danger",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"I did have some idea of selling it.\"",
+     "misconception": "cites a plan to sell it, weak evidence of danger",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "\"Sounds like the Arabian Nights,\" said Mrs. White.",
+     "misconception": "cites Mrs. White's joke, not Morris's view",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"It has caused enough mischief already.\"",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q8",
+   "standard": "6.RL.1.A",
+   "stem": "How does Mrs. White react when Morris first holds out the paw?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "She takes it eagerly",
+     "misconception": "gives Herbert's curiosity to Mrs. White",
+     "standard": "6.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "She asks to make a wish",
+     "misconception": "moves her later joke about four pairs of hands to this moment",
+     "standard": "6.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "She draws back with a grimace",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "She laughs at Morris",
+     "misconception": "moves the family's later laughter to this moment",
+     "standard": "6.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q9",
+   "standard": "9-10.RL.1.A",
+   "stem": "What can you infer about Mr. White from how he handles the paw across the excerpt?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "He grows more eager to own and use it despite every warning",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "He is afraid of the paw",
+     "misconception": "overlooks that he snatches it from the fire and asks how",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "He wants to destroy it",
+     "misconception": "gives Morris's wish to burn the paw to Mr. White",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "He does not care about it",
+     "misconception": "ignores that he examined \"his new possession closely\"",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q10",
+   "standard": "8.RL.1.A",
+   "stem": "Which detail most strongly shows that the Whites do not take Morris's warning seriously?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "His hearers felt their light laughter \"jarred somewhat.\"",
+     "misconception": "picks the moment the family briefly does take Morris seriously",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "All three burst into laughter as Mr. White takes out the paw",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "Mrs. White drew back with a grimace.",
+     "misconception": "reads disgust at the paw as disbelief in the warning",
+     "standard": "8.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"Hold it up in your right hand and wish aloud,\" said the sergeant-major.",
+     "misconception": "cites Morris's instructions, which show nothing about the family",
+     "standard": "8.RL.1.A"
+    }
+   ]
+  }
+ ]
+}

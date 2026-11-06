@@ -1,0 +1,12 @@
+{
+ "id": "classroom_2.00-intervention",
+ "name": "English 9, Period 2",
+ "grade": 9,
+ "subject": "ela",
+ "teacher_id": "demo-teacher",
+ "period": 2,
+ "start_date": "2027-01-11",
+ "arm": "intervention",
+ "curriculum": "ela9-v2",
+ "twin": "2.00-control"
+}

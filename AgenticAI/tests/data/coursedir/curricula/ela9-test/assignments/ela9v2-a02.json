@@ -1,0 +1,5 @@
+{"id": "ela9v2-a02", "module": "rl", "week": 2, "kind": "regular", "type": "short_answer",
+ "title": "Test short answer", "prompt": "Answer each question.", "text_id": "test-story",
+ "due_offset": {"week": 2, "day": "wed"}, "assigned_to": null,
+ "targets": ["9-10.RL.1.A"], "notes": {},
+ "items": [{"id": "q1", "prompt": "What did the fox find?", "standard": "9-10.RL.1.A"}]}

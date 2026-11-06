@@ -1,0 +1,81 @@
+# Teacher/admin settings: defaults. Changes are stored as Postgres overrides (with history) and win over these.
+# Each key: type (int|float|bool|str), default, min/max (numbers) or choices, description, scope ("system"; "classroom" is reserved).
+
+[mc_finding_min_picks]
+type = "int"
+default = 2
+min = 1
+max = 10
+description = "Multiple-choice picks on one standard needed before they count as a finding."
+
+[root_cause_enabled]
+type = "bool"
+default = true
+description = "Trace a grade-level growth area back to its lower-grade root."
+
+[notable_strengths_enabled]
+type = "bool"
+default = true
+description = "Show notable strengths for each student."
+
+[extension_check_enabled]
+type = "bool"
+default = false
+available = false
+description = "Check work against above-grade standards (not built yet)."
+
+[attention_hits]
+type = "int"
+default = 2
+min = 1
+max = 10
+description = "A concept needs attention when this many of the student's last few reviews (see attention_window) show it as a growth area."
+
+[attention_window]
+type = "int"
+default = 3
+min = 1
+max = 10
+description = "How many of a student's most recent reviews of a concept are looked at when deciding it needs attention."
+
+[secure_hits]
+type = "int"
+default = 3
+min = 1
+max = 10
+description = "A concept counts as secure when this many of the student's last few reviews (see secure_window) show it as met."
+
+[secure_window]
+type = "int"
+default = 4
+min = 1
+max = 10
+description = "How many of a student's most recent reviews of a concept are looked at when deciding it is secure."
+
+[trend_window]
+type = "int"
+default = 3
+min = 2
+max = 10
+description = "How many recent reviews of a concept are compared to say whether a student is improving, steady or slipping."
+
+[review_flip_rate]
+type = "float"
+default = 0.10
+min = 0.01
+max = 0.35
+description = "How often the review is expected to change its mind on the same work (0.10 is one time in ten). A change smaller than this is not called a trend; the higher this is, the rarer trends become (above 0.35 none could be called)."
+
+[group_min_size]
+type = "int"
+default = 2
+min = 2
+max = 30
+description = "The smallest number of students who share a growth area for them to be grouped for reteaching."
+
+[max_tutees]
+type = "int"
+default = 2
+min = 1
+max = 5
+description = "The most students one peer tutor is asked to help at once in a suggested pairing."

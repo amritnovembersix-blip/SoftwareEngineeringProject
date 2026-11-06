@@ -1,0 +1,322 @@
+{
+ "id": "ela9v2-a19",
+ "module": "ri",
+ "week": 10,
+ "kind": "regular",
+ "type": "multiple_choice",
+ "title": "On Women's Right to Vote: argument, inference and evidence",
+ "prompt": "Read the excerpt, then choose the best answer for each question.",
+ "text_id": "womens-right-to-vote",
+ "due_offset": {
+  "week": 10,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.2.D",
+  "9-10.RI.1.A"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RI.2.D",
+   "stem": "What is Anthony's main claim?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "By voting she committed no crime; she used a citizen's right the Constitution guarantees",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "She regrets voting and asks the audience to forgive her",
+     "misconception": "misses her claim that she \"committed no crime\"",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "C",
+     "text": "Governments have the power to give women rights",
+     "misconception": "takes the \"old dogma\" she rejects as her claim",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "D",
+     "text": "Women should be allowed to run for President",
+     "misconception": "names a claim she never makes; she argues only about voting",
+     "standard": "9-10.RI.2.D"
+    }
+   ]
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RI.1.A",
+   "stem": "What can you infer about why Anthony quotes the Declaration of Independence at length?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "She disagrees with it and wants it changed",
+     "misconception": "contradicts her use of it as proof",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "She expects her audience to accept it as an authority, so its words strengthen her case",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "She wants to show it names women directly",
+     "misconception": "overlooks that the quoted words say \"all men\"",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "She is filling time before her real point",
+     "misconception": "infers a motive that no detail supports",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q3",
+   "standard": "7.RI.1.A",
+   "stem": "According to Anthony, what do people agree to when they form a free government?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "To give their natural rights to the government",
+     "misconception": "overlooks that they \"do not barter away their natural rights\"",
+     "standard": "7.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "To let the strongest person settle disputes",
+     "misconception": "reverses \"abandon the methods of brute force\"",
+     "standard": "7.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "To vote in every election",
+     "misconception": "draws a conclusion about voting that this paragraph does not state",
+     "standard": "7.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "To protect each other's rights through courts and lawmakers instead of force",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q4",
+   "standard": "9-10.RI.2.D",
+   "stem": "Which evidence does Anthony use to support her claim?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "The verdict of her own trial",
+     "misconception": "names a verdict as evidence, though she is still only charged",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "B",
+     "text": "Figures on how many women voted",
+     "misconception": "names statistics, a kind of evidence the speech never uses",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "C",
+     "text": "The Declaration of Independence's words that governments get \"their just powers from the consent of the governed\"",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "Her own feelings about the election",
+     "misconception": "takes her personal situation for her evidence, not the documents",
+     "standard": "9-10.RI.2.D"
+    }
+   ]
+  },
+  {
+   "id": "q5",
+   "standard": "7.RI.1.A",
+   "stem": "Which two details together show that Anthony believes rights come before government?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"Before governments were organized... each individual possessed the right\" and \"I stand before you to-night, under indictment\"",
+     "misconception": "pairs a strong detail with one about her own situation",
+     "standard": "7.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"Before governments were organized... each individual possessed the right to protect his own life\" and \"Not one of them pretends to bestow rights.\"",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "\"They agree to abandon the methods of brute force\" and \"It shall be my work this evening to prove to you\"",
+     "misconception": "picks details about methods and her plan, not where rights come from",
+     "standard": "7.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"Not one of them pretends to bestow rights\" and \"Friends and Fellow-citizens\"",
+     "misconception": "pairs a strong detail with her greeting, which supports nothing",
+     "standard": "7.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q6",
+   "standard": "9-10.RI.1.A",
+   "stem": "Anthony says she will prove that she \"simply exercised\" her citizen's right. What does \"simply\" suggest about how she sees her act?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "She admits voting was easy but wrong",
+     "misconception": "reads \"simply\" as an admission, missing \"committed no crime\"",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "She sees voting as an ordinary act of a citizen, not a bold crime",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "She means she voted only once",
+     "misconception": "takes \"simply\" as a count instead of a judgment of the act",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "She thinks voting is unimportant",
+     "misconception": "infers indifference, though she builds a whole speech on it",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q7",
+   "standard": "9-10.RI.2.D",
+   "stem": "Anthony asks how \"the consent of the governed\" can be given \"if the right to vote be denied.\" What reasoning does this question show?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "If government rests on the consent of the governed, denying the vote denies people a way to consent",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "Voting matters less than consent",
+     "misconception": "misses that she treats the vote as the way consent is given",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "C",
+     "text": "The Declaration is out of date",
+     "misconception": "misjudges her reasoning; she relies on the Declaration as authority",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "D",
+     "text": "Women never agreed to the Declaration",
+     "misconception": "mistakes her reasoning about voting for a claim about the Declaration",
+     "standard": "9-10.RI.2.D"
+    }
+   ]
+  },
+  {
+   "id": "q8",
+   "standard": "7.RI.1.A",
+   "stem": "Which two details together show that Anthony believes government exists to protect rights?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"We assert the province of government to be to secure the people in the enjoyment of their unalienable rights\" and \"I stand before you to-night, under indictment\"",
+     "misconception": "pairs a strong detail with one about her own situation",
+     "standard": "7.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"Friends and Fellow-citizens\" and \"It shall be my work this evening to prove to you\"",
+     "misconception": "picks her greeting and her plan, neither about government's purpose",
+     "standard": "7.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "\"We assert the province of government to be to secure the people in the enjoyment of their unalienable rights\" and \"That to secure these, governments are instituted among men\"",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "\"They agree to abandon the methods of brute force\" and \"the alleged crime of having voted\"",
+     "misconception": "picks details about settling disputes and her charge, not government's purpose",
+     "standard": "7.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q9",
+   "standard": "9-10.RI.1.A",
+   "stem": "Why does Anthony add the Quaker preacher's words, \"of all women\"?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "To show that the Declaration's \"all men\" should include women too",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "To show that Quakers wrote the Declaration",
+     "misconception": "draws a conclusion about authorship the text doesn't support",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "To show that only women have the right to vote",
+     "misconception": "overlooks \"of all men\" just before \"of all women\"",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "To make the audience laugh",
+     "misconception": "infers a joke with no support in the passage",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q10",
+   "standard": "9-10.RI.2.D",
+   "stem": "Anthony says the founding documents \"propose to protect the people\" and \"Not one of them pretends to bestow rights.\" Why is this point relevant to her argument?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "It proves the Constitution names women's right to vote",
+     "misconception": "overstates the evidence; she never shows women named in it",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "B",
+     "text": "It is not relevant; it only reviews history",
+     "misconception": "misses how the point connects to her claim about voting",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "C",
+     "text": "It shows that government should create new rights for women",
+     "misconception": "reverses her reasoning that governments do not give rights",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "D",
+     "text": "If government does not create rights, a state cannot take away the vote citizens already have",
+     "correct": true
+    }
+   ]
+  }
+ ]
+}

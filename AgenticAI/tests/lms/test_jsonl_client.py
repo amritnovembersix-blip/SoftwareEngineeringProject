@@ -83,3 +83,8 @@ def test_list_submissions_unknown_course(tmp_path):
 
     with pytest.raises(LookupError):
         _client(tmp_path).list_submissions("classroom_x")
+
+
+def test_jsonl_assignment_has_no_reading_strand(tmp_path):
+    client = _client(tmp_path)
+    assert client.get_assignment("classroom_1.00", "asg-classroom_1.00-essay1").reading_strand is None
