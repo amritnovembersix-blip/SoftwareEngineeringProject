@@ -6,7 +6,10 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY src ./src
 COPY standards ./standards
-# Editable install keeps PACKAGE_ROOT at /app, so default paths (standards/, data/, local/) resolve here.
+COPY config ./config
+COPY prompts ./prompts
+# Editable install keeps PACKAGE_ROOT at /app, so default paths (standards/, config/, prompts/, data/, local/)
+# resolve here.
 RUN pip install --no-cache-dir -e .
 
 ENV DATA_DIR=/app/data

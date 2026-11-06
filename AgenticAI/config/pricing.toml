@@ -1,0 +1,8 @@
+# USD per 1M tokens, [input, output], keyed by model id. Used only to estimate run cost.
+# A model missing here shows its cost as unknown. Update when a provider changes its prices.
+
+"gemini-2.5-flash" = [0.30, 2.50]
+"gemini-2.5-flash-lite" = [0.10, 0.40]
+"gemini-2.5-pro" = [1.25, 10.00]
+# published rate per aggregators (pricepertoken.com, lmmarketcap.com), 2026-11-02; verify on Google's pricing page
+"gemini-3-flash-preview" = [0.50, 3.00]

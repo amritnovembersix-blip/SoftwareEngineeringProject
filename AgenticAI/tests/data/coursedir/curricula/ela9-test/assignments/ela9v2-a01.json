@@ -1,0 +1,4 @@
+{"id": "ela9v2-a01", "module": "rl", "week": 1, "kind": "regular", "type": "paragraph",
+ "title": "Test paragraph", "prompt": "Write one paragraph about the story.", "text_id": "test-story",
+ "due_offset": {"week": 1, "day": "fri"}, "assigned_to": null,
+ "targets": ["9-10.RL.1.A"], "notes": {}, "items": []}

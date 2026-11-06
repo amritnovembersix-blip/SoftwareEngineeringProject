@@ -1,0 +1,8 @@
+{"id": "ela9v2-a01", "module": "rl", "week": 1, "kind": "regular", "type": "multiple_choice",
+ "title": "Fixture multiple choice", "prompt": "Answer each question about the story.", "text_id": "fixture-story",
+ "due_offset": {"week": 1, "day": "wed"}, "assigned_to": null,
+ "targets": ["9-10.RL.1.B"], "notes": {},
+ "items": [{"id": "q1", "stem": "What does the phrase mean?", "standard": "9-10.RL.1.B",
+            "choices": [{"key": "A", "text": "The figurative meaning.", "correct": true},
+                        {"key": "B", "text": "The literal meaning.", "misconception": "reads the phrase literally",
+                         "standard": "5.R.1.B.b"}]}]}

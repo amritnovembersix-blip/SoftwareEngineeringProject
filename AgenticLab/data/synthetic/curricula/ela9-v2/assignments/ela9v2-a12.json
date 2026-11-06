@@ -1,0 +1,20 @@
+{
+ "id": "ela9v2-a12",
+ "module": "ri",
+ "week": 6,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "The Gettysburg Address: central idea",
+ "prompt": "Write one paragraph that explains two central ideas in the Gettysburg Address and how Lincoln develops them from the beginning of the speech to the end. Quote the speech to support your explanation, and explain why these ideas mattered in 1863.",
+ "text_id": "gettysburg-address",
+ "due_offset": {
+  "week": 6,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.1.D"
+ ],
+ "notes": {},
+ "items": []
+}

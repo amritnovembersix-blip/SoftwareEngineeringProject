@@ -1,8 +1,11 @@
 """In-memory standards (no database) for tests and the fake-LLM demo."""
 import math
+from pathlib import Path
 
 from agentic.llm.base import Embedder
+from agentic.llm.fake import FakeEmbedder
 from agentic.models import StandardRef
+from agentic.standards import loader
 
 
 def _text(s: StandardRef) -> str:
@@ -23,6 +26,10 @@ class InMemoryStandards:
 
     def at_grade(self, grade: int) -> list[StandardRef]:
         return sorted((r for r in self._rows if r.grade_min <= grade <= r.grade_max),
+                      key=lambda r: r.code)
+
+    def in_range(self, lo: int, hi: int) -> list[StandardRef]:
+        return sorted((r for r in self._rows if r.grade_min >= lo and r.grade_max <= hi),
                       key=lambda r: r.code)
 
     def search(self, query_embedding: list[float], grade: int, k: int) -> list[StandardRef]:
@@ -57,3 +64,12 @@ def demo_standards() -> list[StandardRef]:
         _s('9-10.W.3.A.e', 'Revise and Edit',
            'Review, revise, and edit writing with consideration for the task, purpose, and audience. Use technology, including the Internet, to produce, publish, and update individual or shared writing products, taking advantage of technology’s capacity to link to other information and to display information flexibly and dynamically'),
     ]
+
+
+def in_memory_v2_standards(xlsx: Path) -> InMemoryStandards:
+    """The v2 catalog without a database (FAKE_LLM=1 with REVIEW_PIPELINE=v2)."""
+    rows = loader.normalize_rows(loader.read_xlsx(xlsx))
+    refs = [StandardRef(code=r.code, concept=r.concept or "", description=r.description,
+                        grade_min=r.grade_min, grade_max=r.grade_max, strand=r.strand_code,
+                        sub_expectation=r.sub_expectation) for r in rows]
+    return InMemoryStandards(refs, FakeEmbedder())

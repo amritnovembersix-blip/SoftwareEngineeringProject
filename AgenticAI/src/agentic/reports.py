@@ -13,7 +13,7 @@ def write_review_report(result: ReviewResult, reports_dir: Path, now: datetime |
     reports_dir.mkdir(parents=True, exist_ok=True)
     path = reports_dir / (f"{result.submission_ref.submission_id}-{result.strategy}-"
                           f"{now.strftime('%Y%m%dT%H%M%S')}.json")
-    body = result.model_dump(mode="json")
+    body = result.model_dump(mode="json", exclude={"trace"})  # the trace may echo student text
     body["models"] = models if models is not None else {
         "chat": None, "embedder": None, "decision": result.verification.model}
     if strands is not None:

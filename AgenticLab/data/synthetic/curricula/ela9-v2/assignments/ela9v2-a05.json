@@ -1,0 +1,322 @@
+{
+ "id": "ela9v2-a05",
+ "module": "rl",
+ "week": 3,
+ "kind": "regular",
+ "type": "multiple_choice",
+ "title": "The Necklace: theme, inference and word meaning",
+ "prompt": "Read the excerpt, then choose the best answer for each question.",
+ "text_id": "the-necklace",
+ "due_offset": {
+  "week": 3,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.1.D",
+  "9-10.RL.1.A"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "6.RL.1.B",
+   "stem": "When the necklace is returned, Madame Forestier speaks \"with a chilly manner.\" What does \"chilly\" mean here?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Cold from the weather",
+     "misconception": "reads \"chilly\" as the temperature rather than her manner",
+     "standard": "6.RL.1.B"
+    },
+    {
+     "key": "B",
+     "text": "Nervous and shaky",
+     "misconception": "misses the scolding in \"You should have returned it sooner\"",
+     "standard": "6.RL.1.B"
+    },
+    {
+     "key": "C",
+     "text": "Cool and unfriendly",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "Warm and grateful",
+     "misconception": "ignores the word's negative connotation and her complaint about the delay",
+     "standard": "6.RL.1.B"
+    }
+   ]
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RL.1.A",
+   "stem": "The narrator asks, \"If she had detected the substitution... Would she not have taken Madame Loisel for a thief?\" What can you infer from this?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Madame Forestier had accused her of theft before",
+     "misconception": "infers a past accusation the text never mentions",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "Madame Loisel hid the loss partly from fear of being judged dishonest",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "Madame Loisel really did steal the necklace",
+     "misconception": "overlooks that she lost it and bought a replacement",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "Madame Forestier opened the case and grew suspicious",
+     "misconception": "contradicts \"She did not open the case\"",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q3",
+   "standard": "9-10.RL.1.D",
+   "stem": "Which statement best expresses a theme of the excerpt?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "The story is about jewelry",
+     "misconception": "gives a topic instead of a statement about life",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "B",
+     "text": "Hiding a mistake instead of admitting it can cost far more than the truth would have",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "Madame Loisel loses a necklace and works for ten years to replace it",
+     "misconception": "retells the plot instead of stating a theme",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "D",
+     "text": "Rich people are always cruel to the poor",
+     "misconception": "states a theme the text contradicts: Madame Forestier is \"deeply moved\"",
+     "standard": "9-10.RL.1.D"
+    }
+   ]
+  },
+  {
+   "id": "q4",
+   "standard": "6.RL.1.B",
+   "stem": "After ten years, Madame Loisel has become \"strong and hard and rough.\" In this sentence, \"hard\" means",
+   "choices": [
+    {
+     "key": "A",
+     "text": "solid like stone",
+     "misconception": "takes the everyday meaning of \"hard\", not its meaning for a person",
+     "standard": "6.RL.1.B"
+    },
+    {
+     "key": "B",
+     "text": "cruel to other people",
+     "misconception": "reads \"hard\" as cruel, though the text describes only her labor",
+     "standard": "6.RL.1.B"
+    },
+    {
+     "key": "C",
+     "text": "toughened by work and hardship",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "difficult to understand",
+     "misconception": "reads \"hard\" as \"difficult\", which doesn't fit a description of her",
+     "standard": "6.RL.1.B"
+    }
+   ]
+  },
+  {
+   "id": "q5",
+   "standard": "9-10.RL.1.A",
+   "stem": "Taking the whole excerpt together, what can you infer about how poverty changed Madame Loisel?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "It made her bitter toward everyone",
+     "misconception": "overlooks her \"sudden heroism\" and her joy at the end",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "It made her tougher and plainer, yet she still longs for the night she was admired",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "It changed her clothes but not her looks",
+     "misconception": "contradicts \"looked old now\" and her \"red hands\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "It made her forget the ball entirely",
+     "misconception": "contradicts that she \"thought of that gay evening\"",
+     "standard": "9-10.RL.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q6",
+   "standard": "9-10.RL.1.D",
+   "stem": "How does the description of Madame Loisel's ten years of labor develop the story's theme?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "It shows the huge, lasting cost of one lost necklace, which makes the ending bitter",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "It shows that hard work made her happier and more beautiful",
+     "misconception": "misreads the development: she now \"looked old\" and \"hard and rough\"",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "C",
+     "text": "It is background that has nothing to do with the theme",
+     "misconception": "misses how the years of labor build the theme toward the ending",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "D",
+     "text": "It shows that Madame Forestier caused her suffering",
+     "misconception": "takes Mathilde's \"because of you!\" as the story's theme",
+     "standard": "9-10.RL.1.D"
+    }
+   ]
+  },
+  {
+   "id": "q7",
+   "standard": "6.RL.1.B",
+   "stem": "The Loisels \"rented a garret under the roof.\" What is a \"garret\"?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "a small room just under the roof",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "a garden behind the house",
+     "misconception": "guesses from the sound of the word, ignoring \"under the roof\"",
+     "standard": "6.RL.1.B"
+    },
+    {
+     "key": "C",
+     "text": "a servant",
+     "misconception": "takes the meaning from \"dismissed their servant\" just before",
+     "standard": "6.RL.1.B"
+    },
+    {
+     "key": "D",
+     "text": "a shop where they sold goods",
+     "misconception": "ignores the clue that they moved their lodgings there",
+     "standard": "6.RL.1.B"
+    }
+   ]
+  },
+  {
+   "id": "q8",
+   "standard": "9-10.RL.1.D",
+   "stem": "The narrator asks, \"What would have happened if she had not lost that necklace?\" and adds, \"How small a thing is needed to make or ruin us!\" Which theme do these lines develop?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Life never changes, no matter what happens",
+     "misconception": "reverses the narrator's \"How strange and changeful is life!\"",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "B",
+     "text": "Friends should never lend each other jewelry",
+     "misconception": "turns one plot event into a narrow rule, not a theme",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "C",
+     "text": "A single small event can change the course of a whole life",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "People should save money for emergencies",
+     "misconception": "states a general lesson the passage never develops",
+     "standard": "9-10.RL.1.D"
+    }
+   ]
+  },
+  {
+   "id": "q9",
+   "standard": "9-10.RL.1.A",
+   "stem": "Telling her friend the truth, Madame Loisel \"smiled with a joy that was at once proud and ingenuous.\" What can you infer at that moment?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "She knew all along that the necklace was fake",
+     "misconception": "overlooks that the paste is revealed only after her smile",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "B",
+     "text": "She is trying to make her friend feel guilty",
+     "misconception": "infers a motive the text doesn't support; she is \"very glad\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "C",
+     "text": "She regrets telling the truth",
+     "misconception": "contradicts her \"joy\" and \"I am very glad\"",
+     "standard": "9-10.RL.1.A"
+    },
+    {
+     "key": "D",
+     "text": "She is proud of repaying the debt and does not suspect her sacrifice was needless",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q10",
+   "standard": "9-10.RL.1.D",
+   "stem": "Which is the best objective summary of the excerpt?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Foolish Madame Loisel ruins her life over a necklace and gets what she deserves.",
+     "misconception": "adds a personal judgment, so the summary is not objective",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "B",
+     "text": "Madame Loisel meets Madame Forestier in the Champs Elysees and learns the necklace was paste.",
+     "misconception": "gives only the ending and leaves out the ten years of debt",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "C",
+     "text": "Madame Forestier demands payment, so the Loisels work for ten years.",
+     "misconception": "adds an event, a demand for payment, that the text lacks",
+     "standard": "9-10.RL.1.D"
+    },
+    {
+     "key": "D",
+     "text": "After secretly replacing a lost necklace, the Loisels spend ten years paying for it; then Madame Loisel learns the original was fake.",
+     "correct": true
+    }
+   ]
+  }
+ ]
+}

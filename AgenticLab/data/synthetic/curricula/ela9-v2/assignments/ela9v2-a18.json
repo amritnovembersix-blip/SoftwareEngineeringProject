@@ -1,0 +1,20 @@
+{
+ "id": "ela9v2-a18",
+ "module": "ri",
+ "week": 9,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "What to the Slave Is the Fourth of July?: craft and meaning",
+ "prompt": "Write one paragraph analyzing how Douglass's word choices and sentence structures build the meaning and tone of this passage. Look at choices such as his series of questions, his long lists, and phrases like \"scorching irony\" and \"fiery stream,\" and quote at least two.",
+ "text_id": "fourth-of-july-douglass",
+ "due_offset": {
+  "week": 9,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.2.C"
+ ],
+ "notes": {},
+ "items": []
+}

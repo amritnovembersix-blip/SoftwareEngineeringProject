@@ -1,5 +1,6 @@
 import pytest
 
+from agentic.llm.base import DailyQuotaExceeded
 from agentic.llm.ratelimit import RateLimiter, call_with_retries
 
 
@@ -78,3 +79,82 @@ def test_concurrent_callers_get_distinct_slots():
     for t in threads:
         t.join()
     assert sorted(sleeps) == pytest.approx([1.0, 2.0, 3.0, 4.0])  # first caller doesn't wait
+
+
+def _fake_time():
+    now = [0.0]
+    sleeps: list[float] = []
+
+    def sleep(s):
+        sleeps.append(s)
+        now[0] += s
+
+    return now, sleeps, (lambda: now[0]), sleep
+
+
+def test_tpm_second_call_waits_for_window():
+    now, sleeps, clock, sleep = _fake_time()
+    rl = RateLimiter(rpm=1000, tpm=1000, clock=clock, sleep=sleep)
+    rl.acquire(600)
+    rl.acquire(600)
+    assert sum(sleeps) == pytest.approx(60.0)
+
+
+def test_tpm_estimate_over_budget_waits_for_empty_window_then_proceeds():
+    now, sleeps, clock, sleep = _fake_time()
+    rl = RateLimiter(rpm=1000, tpm=1000, clock=clock, sleep=sleep)
+    rl.acquire(5000)  # window empty: goes straight through
+    assert sum(sleeps) < 1
+    rl.acquire(5000)  # must wait for the first to leave the window, then proceed
+    assert sum(sleeps) == pytest.approx(60.0)
+
+
+def test_record_corrects_window():
+    now, sleeps, clock, sleep = _fake_time()
+    rl = RateLimiter(rpm=1000, tpm=1000, clock=clock, sleep=sleep)
+    rl.acquire(900)
+    rl.record(100, 900)  # the call was far smaller than estimated
+    rl.acquire(800)
+    assert sum(sleeps) < 1  # only the rpm spacing, no token wait
+
+
+def test_rpd_raises_before_waiting_and_resets_next_day():
+    day = [1]
+    now, sleeps, clock, sleep = _fake_time()
+    rl = RateLimiter(rpm=1000, rpd=2, clock=clock, sleep=sleep, today=lambda: day[0])
+    rl.acquire()
+    rl.acquire()
+    with pytest.raises(DailyQuotaExceeded, match="daily request budget reached"):
+        rl.acquire()
+    assert sum(sleeps) < 1
+    day[0] = 2
+    rl.acquire()
+
+
+def test_retry_after_hint_overrides_backoff():
+    sleeps: list[float] = []
+    n = {"c": 0}
+
+    def fn():
+        n["c"] += 1
+        if n["c"] == 1:
+            raise Retryable()
+        return "ok"
+
+    assert call_with_retries(fn, lambda e: True, sleep=sleeps.append, retry_after=lambda e: 7.0) == "ok"
+    assert sleeps == [7.0]
+
+
+@pytest.mark.parametrize("hint,slept", [(-3.0, 0.0), (1e9, 60.0)])
+def test_retry_after_hint_is_clamped(hint, slept):
+    sleeps: list[float] = []
+    n = {"c": 0}
+
+    def fn():
+        n["c"] += 1
+        if n["c"] == 1:
+            raise Retryable()
+        return "ok"
+
+    assert call_with_retries(fn, lambda e: True, sleep=sleeps.append, retry_after=lambda e: hint) == "ok"
+    assert sleeps == [slept]

@@ -1,0 +1,4 @@
+{"id": "ela9v2-i01", "module": "rl", "week": 2, "kind": "intervention", "type": "paragraph",
+ "title": "Test intervention paragraph", "prompt": "Write one paragraph.", "text_id": "test-story",
+ "due_offset": {"week": 2, "day": "fri"}, "assigned_to": ["c3c3c3c3c3c3c3c3"],
+ "targets": ["9-10.RL.1.A"], "notes": {}, "items": []}

@@ -1,5 +1,6 @@
 """Jev verification: adds probabilities to a review, never removes anything."""
 from agentic.decisions.base import DecisionModel, NoulQuestion
+from agentic.llm.base import DailyQuotaExceeded
 from agentic.lms.base import Assignment
 from agentic.models import Finding, MetStandard, StandardRef, Verification
 
@@ -91,6 +92,8 @@ def verify(
                 m.model_copy(update={"p_met": p, "possible_miss": p is not None and p < miss_threshold})
             )
         verification = Verification(status="ok", model=result.model, input_tokens=result.input_tokens)
+    except DailyQuotaExceeded:
+        raise  # not a verification failure: the run pauses until the budget resets
     except Exception:  # verification is an add-on; never lose the review
         return findings, met, Verification(status="unavailable")
     return new_findings, new_met, verification

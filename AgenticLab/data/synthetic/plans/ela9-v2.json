@@ -1,0 +1,64 @@
+{
+ "curriculum": "ela9-v2",
+ "version": "2.00",
+ "start_date": "2027-01-11",
+ "teacher_id": "demo-teacher",
+ "courses": {
+  "control": {"name": "English 9, Period 1", "period": 1},
+  "intervention": {"name": "English 9, Period 2", "period": 2}
+ },
+ "profiles": [
+  {"name": "On track", "count": 4, "families": [], "quirks": [0, 0, 1, 1]},
+  {"name": "Strong reader, weak conventions", "count": 4,
+   "families": [{"family": "agreement", "secure_through": 2, "at_grade_level": 3},
+                {"family": "sentence_boundaries", "secure_through": 4, "at_grade_level": 2}],
+   "quirks": [1, 1, 1, 1], "start_week": 1},
+  {"name": "Fluent writer, shallow analysis", "count": 3,
+   "families": [{"family": "evidence", "secure_through": 7, "at_grade_level": 2},
+                {"family": "theme_central_idea", "secure_through": 8, "at_grade_level": 1}],
+   "quirks": [1, 1, 1], "start_week": 1, "jitter": false},
+  {"name": "Foundational gaps", "count": 3,
+   "families": [{"family": "organization", "secure_through": 2, "at_grade_level": 3},
+                {"family": "sentence_boundaries", "secure_through": 3, "at_grade_level": 2},
+                {"family": "mechanics", "secure_through": 4, "at_grade_level": 1}],
+   "quirks": [0, 0, 0], "start_week": 1},
+  {"name": "Vocabulary", "count": 2,
+   "families": [{"family": "vocabulary", "secure_through": 4, "at_grade_level": 2},
+                {"family": "evidence", "secure_through": 6, "at_grade_level": 1}],
+   "quirks": [1, 1], "start_week": 1},
+  {"name": "Regressing", "count": 2,
+   "families": [{"family": "organization", "secure_through": 8, "at_grade_level": 2},
+                {"family": "evidence", "secure_through": 8, "at_grade_level": 1}],
+   "quirks": [0, 0], "start_week": 7, "jitter": false}
+ ],
+ "interventions": [
+  {"id": "iv1", "week": 4, "kind": "class_lesson", "profile": "all", "families": ["sentence_boundaries"],
+   "rate": 2, "description": "Whole-class mini-lesson on compound and complex sentences and their commas."},
+  {"id": "iv2", "week": 4, "kind": "individual", "profile": "Strong reader, weak conventions",
+   "families": ["agreement"], "rate": 1,
+   "description": "One-on-one conferences on subject-verb, pronoun and tense agreement, with a revision task.",
+   "assignment": {
+    "id": "ela9v2-i01", "module": "rl", "week": 5, "kind": "intervention", "type": "paragraph",
+    "title": "Revise your theme paragraph",
+    "prompt": "Revise the theme paragraph you wrote about \"The Necklace\" in week 3. Read each sentence aloud and make sure every verb agrees with its subject, every pronoun matches the noun it stands for, and the tense stays the same from start to finish.",
+    "text_id": "the-necklace", "due_offset": {"week": 5, "day": "fri"},
+    "targets": ["9-10.W.3.A.c"], "notes": {}, "items": []}},
+  {"id": "iv3", "week": 8, "kind": "small_group", "profile": "Fluent writer, shallow analysis",
+   "families": ["evidence"], "rate": 1,
+   "description": "Small-group session on choosing the strongest evidence and explaining the inference it supports.",
+   "assignment": {
+    "id": "ela9v2-i02", "module": "ri", "week": 8, "kind": "intervention", "type": "short_answer",
+    "title": "Ain't I a Woman?: evidence and inference",
+    "prompt": "Answer each question in two or three sentences. Quote the speech to support your answer.",
+    "text_id": "aint-i-a-woman", "due_offset": {"week": 8, "day": "fri"},
+    "targets": ["9-10.RI.1.A", "9-10.RI.2.D"], "notes": {},
+    "items": [
+     {"id": "q1", "standard": "9-10.RI.1.A",
+      "prompt": "What can you infer about how the audience treated Truth from what she says about the man who spoke before her? Quote the line that supports your inference."},
+     {"id": "q2", "standard": "9-10.RI.1.A",
+      "prompt": "Which detail from her own life is the strongest support for her claim? Explain why it is stronger than another detail she gives."},
+     {"id": "q3", "standard": "9-10.RI.2.D",
+      "prompt": "Truth answers the argument about intellect and the argument about Christ. Which answer is more convincing, and what evidence makes it so?"}]}}
+ ],
+ "non_responder": {"intervention": "iv2", "index": 0}
+}

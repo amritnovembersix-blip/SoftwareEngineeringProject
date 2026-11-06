@@ -32,3 +32,11 @@ def test_fake_chat_unscripted_raises():
     chat = FakeChatModel({Out: lambda s, u: Out(a=1)})
     with pytest.raises(KeyError):
         chat.structured("s", "u", Other)
+
+
+def test_fake_chat_complete_estimates_usage_and_structured_matches():
+    chat = FakeChatModel({Out: lambda s, u: Out(a=1)})
+    out, usage = chat.complete("s" * 8, "u" * 12, Out)
+    assert out == Out(a=1)
+    assert usage.input_tokens == 5 and usage.estimated
+    assert chat.structured("s", "u", Out) == Out(a=1)

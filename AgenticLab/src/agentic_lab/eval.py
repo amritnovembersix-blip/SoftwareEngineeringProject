@@ -12,10 +12,8 @@ from agentic.dataset import EssayRow
 from agentic_lab.labels import LabelRow
 from agentic.models import Finding, ReviewResult, SubmissionRef
 from agentic.review.graph import Reviewer
-
-
-def concept_of(code: str) -> str:
-    return ".".join(code.split(".")[:4])
+# One definition, in production. The trends branch's concept_code() in agentic/analytics/timeline.py should switch to it at merge.
+from agentic.standards.codes import concept_of  # noqa: F401
 
 
 class Counts(BaseModel):

@@ -11,7 +11,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 SkipReason = Literal["already_reviewed", "excused", "not_submitted", "unsupported_subject",
-                     "no_standards_in_scope"]
+                     "no_standards_in_scope", "unsupported_type"]
 Trigger = Literal["on_grade", "on_due_date", "scheduled", "manual", "after_review"]
 
 
@@ -34,6 +34,7 @@ class Run(BaseModel):
     completed_count: int = 0
     skipped_count: int = 0
     skips: list[Skip] = []
+    paused: Literal["daily_quota"] | None = None  # the daily LLM budget ran out; the next trigger resumes
     error: str | None = None  # exception class name only, never a message (may quote essay text)
     created_at: datetime
     started_at: datetime | None = None
@@ -42,7 +43,7 @@ class Run(BaseModel):
 
 class RunStore:
     """Thread-safe. Each (submission_id, attempt) has at most one live run: a queued, running or
-    succeeded run is returned as a duplicate; a failed one may be retried with a new run."""
+    succeeded run is returned as a duplicate; a failed or paused (daily quota) one may be retried with a new run."""
 
     def __init__(self):
         self._lock = threading.Lock()
@@ -54,7 +55,7 @@ class RunStore:
         key = (submission_id, attempt)
         with self._lock:
             existing = self._runs.get(self._by_attempt.get(key, ""))
-            if existing and existing.status != "failed":
+            if existing and existing.status != "failed" and existing.paused is None:
                 return existing.model_copy(), True
             run = Run(run_id=str(uuid.uuid4()), trigger=trigger, submission_count=1, created_at=now())
             self._runs[run.run_id] = run
@@ -73,6 +74,13 @@ class RunStore:
             self._runs[run.run_id] = run
             self._by_scope[scope] = run.run_id
             return run.model_copy(), False
+
+    def new(self, trigger: Trigger, run_type: Literal["submission_review", "trend_analysis"]) -> Run:
+        """A queued run of any type, with no dedupe (the analysis scheduler collapses its own requests)."""
+        with self._lock:
+            run = Run(run_id=str(uuid.uuid4()), run_type=run_type, trigger=trigger, created_at=now())
+            self._runs[run.run_id] = run
+            return run.model_copy()
 
     def get(self, run_id: str) -> Run | None:
         with self._lock:

@@ -24,6 +24,9 @@ class _ScopeFilter:
     def at_grade(self, grade: int) -> list[StandardRef]:
         return self._kept(self._inner.at_grade(grade))
 
+    def in_range(self, lo: int, hi: int) -> list[StandardRef]:
+        return self._inner.in_range(lo, hi)  # grade bands choose their own strands
+
     def search(self, query_embedding: list[float], grade: int, k: int) -> list[StandardRef]:
         # Widen the inner search by the number of excluded standards at this grade, so excluded
         # rows ranking first can't crowd out the k we want.

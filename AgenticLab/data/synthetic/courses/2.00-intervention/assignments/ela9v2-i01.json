@@ -1,0 +1,26 @@
+{
+ "id": "ela9v2-i01",
+ "module": "rl",
+ "week": 5,
+ "kind": "intervention",
+ "type": "paragraph",
+ "title": "Revise your theme paragraph",
+ "prompt": "Revise the theme paragraph you wrote about \"The Necklace\" in week 3. Read each sentence aloud and make sure every verb agrees with its subject, every pronoun matches the noun it stands for, and the tense stays the same from start to finish.",
+ "text_id": "the-necklace",
+ "extra_text_ids": [],
+ "due_offset": {
+  "week": 5,
+  "day": "fri"
+ },
+ "assigned_to": [
+  "746314ec09700cb7cebec6544aef8ff1fba3b0fa93a72f39d0f902d607891581",
+  "47263a68be4e677af1d752949b244ee0d3364f5a9568ca493a686eb44a506eaa",
+  "fe466587c0365b5037015aaf03f44be8b91a1ff659e0cd7744432d1ae975d79c",
+  "1910282469a7d5e67b3e79a8248fb0b7e374ace619779b4fe2cbfa9fed5437d4"
+ ],
+ "targets": [
+  "9-10.W.3.A.c"
+ ],
+ "notes": {},
+ "items": []
+}

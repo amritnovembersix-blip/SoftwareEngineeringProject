@@ -1,0 +1,26 @@
+{
+ "id": "ela9v2-a10",
+ "module": "rl",
+ "week": 5,
+ "kind": "regular",
+ "type": "essay",
+ "title": "Theme across two stories: The Monkey's Paw and The Necklace",
+ "prompt": "Write a multi-paragraph essay that explains a theme \"The Monkey's Paw\" and \"The Necklace\" share about choices and their consequences. Introduce your theme clearly in your opening paragraph. Develop it with quoted evidence from both stories, and explain how Jacobs draws on older stories (the fakir's spell and the Arabian Nights) to shape that theme. End with a conclusion that relates the theme to life today.",
+ "text_id": "monkeys-paw",
+ "extra_text_ids": [
+  "the-necklace"
+ ],
+ "due_offset": {
+  "week": 5,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.1.A",
+  "9-10.RL.1.D",
+  "9-10.RL.3.B",
+  "9-10.W.2.A"
+ ],
+ "notes": {},
+ "items": []
+}

@@ -1,0 +1,23 @@
+{
+ "id": "ela9v2-a20",
+ "module": "ri",
+ "week": 10,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "Anthony and Douglass compared",
+ "prompt": "Write one paragraph evaluating how effectively Susan B. Anthony and Frederick Douglass each develop the idea that America is not keeping its founding promises. Quote both speeches, decide which speaker develops the idea more effectively, and explain why.",
+ "text_id": "womens-right-to-vote",
+ "extra_text_ids": [
+  "fourth-of-july-douglass"
+ ],
+ "due_offset": {
+  "week": 10,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.3.B"
+ ],
+ "notes": {},
+ "items": []
+}

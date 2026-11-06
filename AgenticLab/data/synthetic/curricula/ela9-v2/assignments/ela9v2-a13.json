@@ -1,0 +1,37 @@
+{
+ "id": "ela9v2-a13",
+ "module": "ri",
+ "week": 7,
+ "kind": "regular",
+ "type": "short_answer",
+ "title": "Give Me Liberty or Give Me Death: rhetoric and evidence",
+ "prompt": "Answer each question in two or three complete sentences. Quote the text to support your answers.",
+ "text_id": "give-me-liberty",
+ "due_offset": {
+  "week": 7,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.2.B",
+  "9-10.RI.1.A"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RI.2.B",
+   "prompt": "Henry compares hope to \"the song of that siren.\" What does this comparison suggest about the hopes of the men he is answering, and how does it help him persuade?"
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RI.1.A",
+   "prompt": "Henry says he has \"but one lamp,\" the \"lamp of experience.\" What does he conclude from the past ten years? Quote one piece of evidence he uses."
+  },
+  {
+   "id": "q3",
+   "standard": "9-10.RI.2.B",
+   "prompt": "Henry asks a series of questions, such as \"Shall we try argument?\" Why does he answer them himself, and what effect does this have on his audience?"
+  }
+ ]
+}

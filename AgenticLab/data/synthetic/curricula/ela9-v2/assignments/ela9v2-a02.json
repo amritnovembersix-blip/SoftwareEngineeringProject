@@ -1,0 +1,20 @@
+{
+ "id": "ela9v2-a02",
+ "module": "rl",
+ "week": 1,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "The Most Dangerous Game: an inference about Rainsford",
+ "prompt": "Write one paragraph that makes an inference about what kind of person Rainsford is, based on the opening of the story. Support your inference with at least two quotations, and explain how each one supports your point.",
+ "text_id": "most-dangerous-game",
+ "due_offset": {
+  "week": 1,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.1.A"
+ ],
+ "notes": {},
+ "items": []
+}

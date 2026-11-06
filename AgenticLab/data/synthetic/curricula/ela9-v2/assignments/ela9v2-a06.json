@@ -1,0 +1,20 @@
+{
+ "id": "ela9v2-a06",
+ "module": "rl",
+ "week": 3,
+ "kind": "regular",
+ "type": "paragraph",
+ "title": "The Necklace: theme",
+ "prompt": "Write one paragraph that states a theme of \"The Necklace\" and explains how the ending develops it. Quote at least two details from the excerpt, and connect the theme to something people experience in real life.",
+ "text_id": "the-necklace",
+ "due_offset": {
+  "week": 3,
+  "day": "fri"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RL.1.D"
+ ],
+ "notes": {},
+ "items": []
+}

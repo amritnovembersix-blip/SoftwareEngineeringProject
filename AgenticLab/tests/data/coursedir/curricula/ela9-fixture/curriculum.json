@@ -1,0 +1,3 @@
+{"id": "ela9-fixture", "grade": 9,
+ "modules": [{"id": "rl", "title": "Fixture Module", "strand": "RL", "weeks": [1, 2]}],
+ "assignments": ["ela9v2-a01", "ela9v2-a02", "ela9v2-a03"]}

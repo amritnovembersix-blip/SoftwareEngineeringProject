@@ -1,0 +1,322 @@
+{
+ "id": "ela9v2-a15",
+ "module": "ri",
+ "week": 8,
+ "kind": "regular",
+ "type": "multiple_choice",
+ "title": "Ain't I a Woman?: inference, evidence and argument",
+ "prompt": "Read the excerpt, then choose the best answer for each question.",
+ "text_id": "aint-i-a-woman",
+ "due_offset": {
+  "week": 8,
+  "day": "wed"
+ },
+ "assigned_to": null,
+ "targets": [
+  "9-10.RI.1.A",
+  "9-10.RI.2.D"
+ ],
+ "notes": {},
+ "items": [
+  {
+   "id": "q1",
+   "standard": "9-10.RI.2.D",
+   "stem": "Truth answers the claim that women need to be helped into carriages. Why is her own experience strong evidence against it?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "It is weak evidence because she is only one person",
+     "misconception": "misjudges a counterexample as too small to refute an \"all women\" claim",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "B",
+     "text": "It proves that men never help anyone",
+     "misconception": "stretches her evidence into a false general claim",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "C",
+     "text": "It proves that women are stronger than men",
+     "misconception": "generalizes from her own case to all women versus all men",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "D",
+     "text": "As a woman who never got such help and did hard labor, she is a counterexample to a claim about all women",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q2",
+   "standard": "9-10.RI.1.A",
+   "stem": "Truth says, \"Nobody ever helps me into carriages, or over mud-puddles, or gives me any best place!\" What can you infer is her purpose?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "To ask the men to start helping her",
+     "misconception": "takes her point as a request, missing that she refutes a claim",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "To admit that she is weaker than other women",
+     "misconception": "ignores the next lines about her strength and labor",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "To show that the claim that women need special help ignores women like her",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "To complain that the roads are muddy",
+     "misconception": "infers from a detail instead of from her argument",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q3",
+   "standard": "8.RI.1.A",
+   "stem": "Which line most strongly supports Truth's claim that she is as strong as a man?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"Where did your Christ come from?\"",
+     "misconception": "cites a line that answers a different argument, about Christ",
+     "standard": "8.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"Obliged to you for hearing me.\"",
+     "misconception": "cites her polite closing, which supports no claim",
+     "standard": "8.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "\"That's it, honey.\"",
+     "misconception": "cites her reply about intellect, not about strength",
+     "standard": "8.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"I have ploughed and planted, and gathered into barns, and no man could head me!\"",
+     "correct": true
+    }
+   ]
+  },
+  {
+   "id": "q4",
+   "standard": "9-10.RI.1.A",
+   "stem": "Taking the speech as a whole, what can you infer about how Truth answers her opponents?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "She meets each argument against women's rights with a concrete reply from her life or faith",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "She ignores what the other speakers said",
+     "misconception": "overlooks her direct replies to \"that man over there\" and the minister",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "She agrees women are weaker but wants rights anyway",
+     "misconception": "takes the \"if\" in her cup comparison as a concession",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "She argues only against slavery, not for women",
+     "misconception": "overlooks her repeated question, \"ain't I a woman?\"",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q5",
+   "standard": "9-10.RI.2.D",
+   "stem": "The \"little man in black\" says women can't have as much rights as men \"'cause Christ wasn't a woman.\" How does Truth expose a flaw in his reasoning?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "She says that Christ was a woman",
+     "misconception": "credits her with a false statement she never makes",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "B",
+     "text": "She accepts his reasoning but asks for an exception",
+     "misconception": "misses that she rejects his premise outright",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "C",
+     "text": "She shows that his own example came from God and a woman, with no man involved",
+     "correct": true
+    },
+    {
+     "key": "D",
+     "text": "She ignores the argument and changes the subject",
+     "misconception": "misses her direct reply, \"From God and a woman!\"",
+     "standard": "9-10.RI.2.D"
+    }
+   ]
+  },
+  {
+   "id": "q6",
+   "standard": "8.RI.1.A",
+   "stem": "Which line most strongly supports the inference that Truth has suffered greatly?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"Look at my arm!\"",
+     "misconception": "cites her strength, which is weaker evidence of suffering",
+     "standard": "8.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"I have borne thirteen children, and seen most all sold off to slavery\"",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "\"That's it, honey.\"",
+     "misconception": "cites her reply about intellect, not her suffering",
+     "standard": "8.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"Obliged to you for hearing me.\"",
+     "misconception": "cites her polite closing, which shows no suffering",
+     "standard": "8.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q7",
+   "standard": "9-10.RI.1.A",
+   "stem": "\"If my cup won't hold but a pint, and yours holds a quart, wouldn't you be mean not to let me have my little half measure full?\" What can you infer Truth is arguing?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Even if women had less intellect, as some claim, that is no reason to deny them rights",
+     "correct": true
+    },
+    {
+     "key": "B",
+     "text": "Women are less intelligent, so they should have fewer rights",
+     "misconception": "takes her \"if\" as agreement, missing \"wouldn't you be mean\"",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "People should share their drinks fairly",
+     "misconception": "stays with the literal cups instead of inferring her point",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "Men should give women all of their own rights",
+     "misconception": "infers men lose rights, though she asks only for her \"half measure\"",
+     "standard": "9-10.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q8",
+   "standard": "9-10.RI.2.D",
+   "stem": "Truth asks of intellect, \"What's that got to do with women's rights or negroes' rights?\" How does she treat the intellect argument?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "As true, so women should accept fewer rights",
+     "misconception": "misses that she denies the claim matters to rights",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "B",
+     "text": "As irrelevant: even a smaller \"cup\" deserves its share of rights",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "As proof that women are smarter than men",
+     "misconception": "credits her with a claim she never makes",
+     "standard": "9-10.RI.2.D"
+    },
+    {
+     "key": "D",
+     "text": "As the strongest argument against her",
+     "misconception": "misjudges which claim she treats as beside the point",
+     "standard": "9-10.RI.2.D"
+    }
+   ]
+  },
+  {
+   "id": "q9",
+   "standard": "8.RI.1.A",
+   "stem": "Which line most strongly shows that Truth rejects the minister's argument about Christ?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "\"Where did your Christ come from?\"",
+     "misconception": "picks her question, which is weaker than the answer that refutes him",
+     "standard": "8.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "\"From God and a woman! Man had nothing to do with Him.\"",
+     "correct": true
+    },
+    {
+     "key": "C",
+     "text": "\"Then that little man in black there, he says women can't have as much rights as men\"",
+     "misconception": "cites the minister's claim, not her rejection of it",
+     "standard": "8.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "\"And ain't I a woman?\"",
+     "misconception": "cites her refrain, which answers a different argument",
+     "standard": "8.RI.1.A"
+    }
+   ]
+  },
+  {
+   "id": "q10",
+   "standard": "9-10.RI.1.A",
+   "stem": "\"If the first woman God ever made was strong enough to turn the world upside down all alone, these women together ought to be able to turn it back.\" What can you infer from this line?",
+   "choices": [
+    {
+     "key": "A",
+     "text": "Women should apologize for the first woman's actions",
+     "misconception": "infers an apology the line does not ask for",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "B",
+     "text": "Men alone should fix the world",
+     "misconception": "overlooks \"these women together\"",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "C",
+     "text": "The first woman literally flipped the earth over",
+     "misconception": "reads the figurative phrase literally instead of inferring her point",
+     "standard": "9-10.RI.1.A"
+    },
+    {
+     "key": "D",
+     "text": "If one woman could upset the world, many women together can set it right",
+     "correct": true
+    }
+   ]
+  }
+ ]
+}
