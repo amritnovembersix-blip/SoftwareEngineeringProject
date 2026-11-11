@@ -98,7 +98,8 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
         sub = lms.get_submission(ref.course_id, ref.assignment_id, ref.user_id)
         assignment = lms.get_assignment(ref.course_id, ref.assignment_id)
         return {"course_grade": course.grade_level,
-                "submission_ref": ref.model_copy(update={"submitted_at": sub.submitted_at}),
+                "submission_ref": ref.model_copy(update={  # the attempt actually reviewed: the LMS serves the latest
+                    "submission_id": sub.id, "attempt": sub.attempt, "submitted_at": sub.submitted_at}),
                 "assignment": assignment, "submission_type": assignment.submission_type, "submission": sub}
 
     def route(state) -> str:

@@ -36,6 +36,7 @@ services:
 
   agentic:
     build: .
+    restart: unless-stopped  # back up after a crash (runs held in memory are still lost)
     env_file: .env
     environment:
       DATABASE_URL_LOCAL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}

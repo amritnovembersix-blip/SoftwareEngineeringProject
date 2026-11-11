@@ -63,8 +63,9 @@ def test_sweep_one_assignment(env):
     client, _, _ = env
     run = _run(client, {"course_id": "classroom_1.01", "assignment_id": "asg-classroom_1.01-essay1"})
     assert run["completed_count"] == 3
-    run = _run(client, {"course_id": "classroom_1.01", "assignment_id": "no-such-assignment"})
-    assert run["submission_count"] == 0 and run["status"] == "succeeded"
+    r = client.post("/sweeps", json={"course_id": "classroom_1.01", "assignment_id": "no-such-assignment"},
+                    headers=AUTH)  # bug report #6: this used to be an empty "succeeded" run
+    assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_assignment"
 
 
 def test_sweep_unknown_course_is_422(env):
@@ -127,7 +128,8 @@ def test_sweep_while_one_is_running_returns_it(env):
     r = client.post("/sweeps", json={"course_id": "classroom_1.01"}, headers=AUTH).json()
     assert r == {"run_id": running.run_id, "duplicate": True, "ignored": False, "reason": None}
     assert writer.saved == []  # nothing new started
-    other = client.post("/sweeps", json={"course_id": "classroom_1.01", "assignment_id": "x"}, headers=AUTH).json()
+    other = client.post("/sweeps", json={"course_id": "classroom_1.01", "assignment_id": "asg-classroom_1.01-essay1"},
+                        headers=AUTH).json()
     assert other["duplicate"] is False  # a different scope is a different sweep
 
 
@@ -280,7 +282,7 @@ def test_coursedir_sweep_of_unknown_assignment_is_4xx_without_paths():
     client, writer, data = coursedir_setup()
     r = client.post("/sweeps", json={"course_id": "classroom_0.90-control",
                                      "assignment_id": "ela9v2-a99@0.90-control"}, headers=AUTH)
-    assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_course"
+    assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_assignment"
     assert data not in r.text and writer.saved == []
 
 

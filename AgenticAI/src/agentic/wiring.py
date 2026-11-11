@@ -142,7 +142,7 @@ def build_chat(s: Settings) -> ChatModel:
         return demo_fake_chat()
     if provider == "gemini":
         _require(s, "llm_api_key", "llm_model")
-        return GeminiChatModel(s.llm_model, s.llm_api_key, s.llm_rpm, reasoning=s.llm_reasoning,
+        return GeminiChatModel(s.llm_model, s.llm_api_key, s.llm_rpm, reasoning=s.llm_reasoning, timeout_s=s.llm_timeout_s,
                                limiter=_shared_limiter("gemini", s.llm_model, s.llm_rpm, s.llm_tpm, s.llm_rpd))
     raise ValueError(f"unknown LLM_PROVIDER {s.llm_provider!r}")
 
@@ -153,7 +153,8 @@ def build_embedder(s: Settings) -> Embedder:
         return FakeEmbedder(s.embedding_dim)
     if provider == "gemini":
         _require(s, "embedding_api_key", "embedding_model")
-        return GeminiEmbedder(s.embedding_model, s.embedding_api_key, s.embedding_dim, s.embedding_rpm)
+        return GeminiEmbedder(s.embedding_model, s.embedding_api_key, s.embedding_dim, s.embedding_rpm,
+                              timeout_s=s.llm_timeout_s)
     raise ValueError(f"unknown EMBEDDING_PROVIDER {s.embedding_provider!r}")
 
 
@@ -179,7 +180,8 @@ def connect(s: Settings, autocommit: bool = True):
     import psycopg
     from pgvector.psycopg import register_vector
 
-    conn = psycopg.connect(s.database_url_local, autocommit=autocommit)
+    conn = psycopg.connect(s.database_url_local, autocommit=autocommit, connect_timeout=10,
+                           options=f"-c statement_timeout={s.db_statement_timeout_s * 1000}")
     register_vector(conn)
     return conn
 

@@ -34,6 +34,7 @@ class Run(BaseModel):
     completed_count: int = 0
     skipped_count: int = 0
     skips: list[Skip] = []
+    unreadable_courses: list[str] = []  # courses a sweep of every course had to skip (their files can't be read)
     paused: Literal["daily_quota"] | None = None  # the daily LLM budget ran out; the next trigger resumes
     error: str | None = None  # exception class name only, never a message (may quote essay text)
     created_at: datetime
