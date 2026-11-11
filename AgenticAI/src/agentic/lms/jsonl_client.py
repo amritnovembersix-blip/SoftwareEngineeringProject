@@ -24,6 +24,8 @@ class JsonlLMSClient:
     def get_assignment(self, course_id: str, assignment_id: str) -> Assignment:
         if course_id != dataset.course_id(self._version):
             raise LookupError(f"unknown course {course_id!r}")
+        if assignment_id != dataset.assignment_id(self._version):
+            raise LookupError("unknown assignment")
         info = dataset.load_assignment(self._data_dir, self._version)
         return Assignment(id=assignment_id, name=info.title or info.id, description=info.prompt,
                           notes=info.notes)

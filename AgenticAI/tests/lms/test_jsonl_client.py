@@ -1,3 +1,4 @@
+import pytest
 from fakes import essay_row, label_row, write_essays, write_labels
 
 from agentic.lms.base import Course, LMSClient
@@ -56,7 +57,7 @@ def test_get_assignment_carries_notes(tmp_path):
     write_labels(tmp_path, "1.01", [label_row(grade=9)])
     dataset.assignment_path(tmp_path, "1.01").write_text(
         '{"prompt": "P", "notes": {"9-10.RL.1.D": "One theme only."}}', encoding="utf-8")
-    a = JsonlLMSClient(tmp_path, "1.01").get_assignment("classroom_1.01", "x")
+    a = JsonlLMSClient(tmp_path, "1.01").get_assignment("classroom_1.01", dataset.assignment_id("1.01"))
     assert a.notes == {"9-10.RL.1.D": "One theme only."}
 
 
@@ -88,3 +89,9 @@ def test_list_submissions_unknown_course(tmp_path):
 def test_jsonl_assignment_has_no_reading_strand(tmp_path):
     client = _client(tmp_path)
     assert client.get_assignment("classroom_1.00", "asg-classroom_1.00-essay1").reading_strand is None
+
+
+def test_unknown_assignment_is_a_lookup_error(tmp_path):
+    write_labels(tmp_path, "1.01", [label_row(grade=9)])
+    with pytest.raises(LookupError):
+        JsonlLMSClient(tmp_path, "1.01").get_assignment("classroom_1.01", "no-such-assignment")
