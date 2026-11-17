@@ -1,3 +1,4 @@
+
 name: SASS automated tests
 
 on:
@@ -12,6 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -28,7 +30,7 @@ jobs:
           --health-retries 20
 
     env:
-      # Test-only database credentials: never use production keys in CI.
+      # Test-only credentials. Do not use real API keys.
       DATABASE_URL: postgresql://sass:change-me@localhost:5432/sass
       DATABASE_URL_LOCAL: postgresql://sass:change-me@localhost:5432/sass
       DATA_DIR: ../AgenticLab/data/synthetic
@@ -47,38 +49,58 @@ jobs:
           python-version: '3.11'
           cache: pip
 
-      - name: Install backend and agentic test dependencies
+      - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e './Backend[dev]' -e './AgenticAI[dev]' -e './AgenticLab[dev]'
+          python -m pip install \
+            -e './Backend[dev]' \
+            -e './AgenticAI[dev]' \
+            -e './AgenticLab[dev]'
 
-      - name: Apply PostgreSQL migrations V1–V8
+      - name: Apply PostgreSQL migrations V1-V8
         run: |
           docker run --rm --network host \
             -v "$PWD/AgenticAI/db/migrations:/flyway/sql:ro" \
             flyway/flyway:10 \
             -url=jdbc:postgresql://localhost:5432/sass \
-            -user=sass -password=change-me \
+            -user=sass \
+            -password=change-me \
             -locations=filesystem:/flyway/sql \
             -connectRetries=10 migrate
 
-      - name: Seed legacy classroom for backend API tests
-        run: python -m agentic seed-demo --classroom 1.01
-
-      - name: Fill v2 demo reviews and analytics without external API calls
-        run: python -m agentic_lab fill-demo
-
-      - name: Run backend tests
+      # Some existing tests expect this legacy directory name.
+      # The symlink does not change project source files.
+      - name: Provide legacy test fixture path
         run: |
-          cd Backend
-          python -m pytest -q -rs --junitxml=../backend-test-results.xml
+          ln -s AgenticLab agentic_lab
+          test -f \
+            agentic_lab/data/synthetic/courses/2.00-control/submissions/ela9v2-a02.jsonl
 
-      - name: Run AgenticAI tests (excluding live API calls)
+      # Run these tests before loading any persistent demo reviews.
+      # Some AgenticAI test fixtures require a clean database.
+      - name: Run AgenticAI tests on clean database
+        working-directory: AgenticAI
         run: |
-          cd AgenticAI
-          python -m pytest -q -rs --junitxml=../agentic-test-results.xml
+          python -m pytest -q -rs \
+            --junitxml=../agentic-test-results.xml
 
-      - name: Fail if any test was skipped
+      # These steps prepare data for the backend integration tests.
+      - name: Seed legacy classroom
+        run: |
+          python -m agentic seed-demo --classroom 1.01
+
+      - name: Fill v2 demo reviews and analytics
+        run: |
+          python -m agentic_lab fill-demo
+
+      - name: Run backend tests with demo data
+        working-directory: Backend
+        run: |
+          python -m pytest -q -rs \
+            --junitxml=../backend-test-results.xml
+
+      # A passing test command must not hide skipped tests.
+      - name: Fail if required tests were skipped
         if: always()
         run: |
           python - <<'PY'
@@ -86,18 +108,31 @@ jobs:
           import xml.etree.ElementTree as ET
 
           errors = []
-          for filename in ('backend-test-results.xml', 'agentic-test-results.xml'):
+
+          reports = (
+              "agentic-test-results.xml",
+              "backend-test-results.xml",
+          )
+
+          for filename in reports:
               path = Path(filename)
+
               if not path.exists():
-                  errors.append(f'{filename}: test results missing')
+                  errors.append(f"{filename}: results missing")
                   continue
+
               root = ET.parse(path).getroot()
-              skipped = root.findall('.//testcase/skipped')
+              skipped = root.findall(".//testcase/skipped")
+
               if skipped:
-                  errors.append(f'{filename}: {len(skipped)} skipped test(s)')
+                  errors.append(
+                      f"{filename}: {len(skipped)} skipped test(s)"
+                  )
+
           if errors:
-              raise SystemExit('\n'.join(errors))
-          print('All required test cases executed (0 skipped).')
+              raise SystemExit("\n".join(errors))
+
+          print("All required tests executed with zero skips.")
           PY
 
       - name: Upload test reports
