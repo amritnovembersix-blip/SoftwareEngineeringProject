@@ -1,5 +1,8 @@
-"""Endpoint tests against the real database. Each test skips when the data it needs isn't there:
-the classroom and enrollments come from seed-demo; findings only exist after a review."""
+"""API tests against a seeded Postgres database.
+
+Legacy 1.01 tests use seed-demo; reviewed findings use the v2 fill-demo fixture.
+Tests skip locally if required data are absent; CI treats unexpected skips as a failure.
+"""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -49,11 +52,18 @@ def test_unknown_classroom_is_404():
 
 @needs_review
 def test_findings_for_a_reviewed_student():
-    students = client.get("/classrooms/classroom_1.01/students").json()
-    reviewed = next(s for s in students if s["review_status"] == "succeeded" and s["finding_count"] > 0)
+    """Use a v2 demo student: the legacy 1.01 classroom is seeded, not reviewed."""
+    classroom_id = "classroom_2.00-control"
+    students = client.get(f"/classrooms/{classroom_id}/students").json()
+    reviewed = next(
+        s for s in students
+        if s["review_status"] == "succeeded" and s["finding_count"] > 0
+    )
     findings = client.get(f"/students/{reviewed['student_id']}/findings").json()
-    assert len(findings) == reviewed["finding_count"]
-    f = findings[0]
+    # Student findings span multiple assignments; compare only the latest submission.
+    latest = [f for f in findings if f["submission_id"] == reviewed["submission_id"]]
+    assert len(latest) == reviewed["finding_count"]
+    f = latest[0]
     assert f["standard_code"] and f["summary"]
     assert f["evidence"] and "paragraph" in f["evidence"][0]
 
