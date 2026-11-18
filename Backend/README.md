@@ -41,6 +41,17 @@ python scripts/create_user.py --email teacher@sass.test --name "Ms. Rivera" --ro
 To protect an endpoint, add `user: CurrentUser = Depends(current_user)` (or `Depends(require_admin)`)
 from `app.auth`.
 
+## When something is down
+
+| Situation | What the API returns |
+|---|---|
+| Database down or unreachable | `503 {"detail": "the database is not reachable"}` with `Retry-After: 5`, within `DB_CONNECT_TIMEOUT` seconds |
+| A query runs longer than `DB_STATEMENT_TIMEOUT_MS` | `503 {"detail": "the database took too long to answer"}` |
+| Agentic service down | `503` on "Review class" only; every other page still works |
+
+`GET /health` checks both dependencies: `{"status": "ok" \| "degraded" \| "down", "database": ..., "agentic": ...}`.
+It returns 200 for `ok` and `degraded` (agentic down, pages still work) and 503 for `down` (no database).
+
 ## Test
 
 ```bash

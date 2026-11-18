@@ -42,3 +42,12 @@ def start_sweep(course_id: str) -> dict:
 def get_run(run_id: str) -> dict:
     """GET /runs/{run_id}: the run's status and counts."""
     return _call("GET", f"/runs/{run_id}")
+
+
+def is_up() -> bool:
+    """True if the agentic service answers GET /health within 2 seconds. Used by /health."""
+    try:
+        resp = httpx.get(settings.agentic_base_url.rstrip("/") + "/health", timeout=2.0)
+    except httpx.TransportError:
+        return False
+    return resp.status_code == 200
