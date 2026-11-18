@@ -8,9 +8,11 @@ A concept is a standard code without its last lowercase letter: 3.L.1.A.e and 3.
 part of concept 3.L.1.A. The same skill appears at several grades (6.W.3.A, 7.W.3.A, ... 9-10.W.3.A),
 so each concept also gets a `skill_code` without the grade (W.3.A) for grouping it once.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from app import db
+from app.access import require_student
+from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["students"])
 
@@ -39,15 +41,11 @@ def _level_labels() -> dict[int, str]:
             2: rows.get("developing", "Developing"), 3: rows.get("beginning", "Beginning")}
 
 
-def _require_student(student_id: str) -> None:
-    if not db.query("SELECT 1 FROM student WHERE id = %s", (student_id,)):
-        raise HTTPException(status_code=404, detail="student not found")
-
-
 @router.get("/students/{student_id}/concepts")
 def student_concepts(
     student_id: str,
     classroom_id: str | None = Query(None, description="Only this classroom"),
+    user: CurrentUser = Depends(current_user),
 ) -> dict:
     """The student's latest status on every concept, most urgent first.
 
@@ -55,7 +53,7 @@ def student_concepts(
     `needs_attention` is the FR6 notification rule: Developing or Beginning on at least 2 of the
     last 3 pieces of work.
     """
-    _require_student(student_id)
+    require_student(user, student_id)
     rows = db.query(f"""
         SELECT c.classroom_id, c.concept_code,
                {_SKILL_OF.format(col='c.concept_code')} AS skill_code,
@@ -91,6 +89,7 @@ def student_concept_history(
     student_id: str,
     concept_code: str | None = Query(None, description="Only this concept, e.g. 9-10.W.3.A"),
     classroom_id: str | None = Query(None, description="Only this classroom"),
+    user: CurrentUser = Depends(current_user),
 ) -> list[dict]:
     """For each concept, the support level on every reviewed piece of work, oldest first, with
     the week it falls in (weeks start on Monday, like the class heatmap). For the progress chart.
@@ -99,7 +98,7 @@ def student_concept_history(
     ignoring standards marked "not evident". This is the same series the analysis stores as
     `points`, so the chart and the status always agree.
     """
-    _require_student(student_id)
+    require_student(user, student_id)
     rows = db.query(f"""
         SELECT a.classroom_id, {_CONCEPT_OF} AS concept_code,
                s.lms_submission_id AS submission_id, a.id AS assignment_id, a.title AS assignment_title,
