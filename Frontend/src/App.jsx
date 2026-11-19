@@ -37,6 +37,16 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Temporary local development preview */}
+      <Route
+        path="/dev/classrooms"
+        element={
+          <Layout>
+            <ClassroomsPage />
+          </Layout>
+        }
+      />
+
       <Route
         path="/login"
         element={
@@ -45,6 +55,7 @@ function AppRoutes() {
             : <LoginPage />
         }
       />
+
       <Route path="/*" element={<MainApp />} />
     </Routes>
   );

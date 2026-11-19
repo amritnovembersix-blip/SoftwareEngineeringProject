@@ -1235,4 +1235,261 @@ tr.row-flash {
   .card-link:hover {
     transform: none;
   }
+
+/* Teacher dashboard */
+
+.teacher-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.dashboard-heading h1 {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 4vw, 2.7rem);
+  color: #24143f;
+  font-weight: 750;
+}
+
+.dashboard-heading p,
+.section-heading p {
+  margin: 0;
+  color: #746987;
+}
+
+.dashboard-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.overview-card {
+  min-height: 145px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 26px;
+  background: #fff;
+  border: 1px solid #e9def7;
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(91, 59, 139, 0.06);
+}
+
+.overview-icon,
+.classroom-icon {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: #eee5fa;
+  color: #7953ad;
+  font-size: 38px;
+}
+
+.overview-card p {
+  margin: 0 0 5px;
+  color: #514461;
+  font-size: 17px;
+}
+
+.overview-card h2 {
+  margin: 0;
+  color: #24143f;
+  font-size: 38px;
+}
+
+.classroom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.section-heading h2 {
+  margin: 0 0 6px;
+  color: #24143f;
+  font-size: 27px;
+}
+
+.classroom-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.classroom-dashboard-card {
+  min-height: 310px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  color: inherit;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #e9def7;
+  border-radius: 22px;
+  box-shadow: 0 5px 20px rgba(91, 59, 139, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.classroom-dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(91, 59, 139, 0.12);
+}
+
+.classroom-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.classroom-icon {
+  width: 70px;
+  height: 70px;
+  font-size: 34px;
+}
+
+.classroom-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.classroom-title h3 {
+  margin: 0 0 10px;
+  color: #24143f;
+  font-size: 23px;
+  line-height: 1.3;
+}
+
+.classroom-grade {
+  display: inline-block;
+  padding: 7px 13px;
+  color: #594574;
+  background: #f0e8fa;
+  border-radius: 30px;
+  font-size: 13px;
+}
+
+.classroom-arrow {
+  color: #7652a5;
+  font-size: 27px;
+}
+
+.classroom-card-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.classroom-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: #7652a5;
+  background: #f3edfa;
+  border-radius: 14px;
+  font-size: 24px;
+}
+
+.classroom-stat div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.classroom-stat strong {
+  color: #24143f;
+  font-size: 25px;
+}
+
+.classroom-stat span:last-child {
+  color: #746987;
+  font-size: 13px;
+}
+
+.classroom-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-track {
+  flex: 1;
+  height: 11px;
+  overflow: hidden;
+  background: #eee7f5;
+  border-radius: 20px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9a70ca, #7950b1);
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+.progress-label {
+  flex-shrink: 0;
+  color: #594574;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.classroom-open-link {
+  color: #7652a5;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+@media (max-width: 760px) {
+  .dashboard-overview,
+  .classroom-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-card {
+    min-height: 115px;
+  }
+
+  .classroom-dashboard-card {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 420px) {
+  .classroom-dashboard-card {
+    padding: 19px;
+  }
+
+  .classroom-card-header {
+    gap: 12px;
+  }
+
+  .classroom-icon {
+    width: 55px;
+    height: 55px;
+  }
+
+  .classroom-title h3 {
+    font-size: 19px;
+  }
+
+  .classroom-stat {
+    gap: 7px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+  }
+}
+
 }
