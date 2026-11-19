@@ -5,16 +5,12 @@ import LoginPage from "./pages/LoginPage.jsx";
 import ClassroomsPage from "./pages/ClassroomsPage.jsx";
 import StudentsPage from "./pages/StudentsPage.jsx";
 import FindingsPage from "./pages/FindingsPage.jsx";
-
-function isSignedIn() {
-  return (
-    sessionStorage.getItem("sassDemoSignedIn") === "true" ||
-    localStorage.getItem("sassDemoSignedIn") === "true"
-  );
-}
+import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 
 function MainApp() {
-  if (!isSignedIn()) {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
@@ -36,16 +32,28 @@ function MainApp() {
   );
 }
 
-export default function App() {
+function AppRoutes() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Routes>
       <Route
         path="/login"
         element={
-          isSignedIn() ? <Navigate to="/" replace /> : <LoginPage />
+          isAuthenticated
+            ? <Navigate to="/" replace />
+            : <LoginPage />
         }
       />
       <Route path="/*" element={<MainApp />} />
     </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
