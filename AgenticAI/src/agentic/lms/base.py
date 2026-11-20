@@ -40,6 +40,8 @@ class Assignment(BaseModel):
     items: list[dict] = []
     # Lab draft: the strand of the curriculum module's text (RL literature, RI informational).
     reading_strand: Literal["RL", "RI"] | None = None
+    # Lab draft: the standards the assignment aims at (the curriculum's `targets`); context, never a boundary in v2.
+    targets: list[str] = []
 
 
 @runtime_checkable

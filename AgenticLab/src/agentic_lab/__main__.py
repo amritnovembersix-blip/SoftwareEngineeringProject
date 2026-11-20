@@ -78,13 +78,28 @@ def _evaluate_course(args: argparse.Namespace) -> int:
     if args.classroom or args.strategy:
         return _err("--course cannot be combined with --classroom or --strategy")
     s = lab_settings().model_copy(update={"lms_source": "coursedir"})
+    from agentic_lab.spot_check import FlagLog
+
+    log = FlagLog(s.reports_dir / f"flags-{datetime.now().strftime('%Y%m%dT%H%M%S')}.jsonl", args.course)
     try:
         options = ReviewOptions(pipeline=args.pipeline, profile=args.profile,
-                                reasoning=reasoning_levels(args.reasoning))
+                                reasoning=reasoning_levels(args.reasoning),
+                                planner=False if args.no_planner else None,
+                                critic=False if args.no_critic else None,
+                                arbiter=False if args.no_arbiter else None)
         wiring.resolve_options(s, options)  # a bad reviewer or level fails before any model call
+        if args.baseline_log is not None and not Path(args.baseline_log).exists():
+            return _err(f"--baseline-log: no such file {args.baseline_log}")
         CourseDir(s.data_dir, args.course).course()
-        report = eval_v2.evaluate_course(s, args.course, args.through_week, options, repeat=args.repeat or 1,
-                                         students=args.students, max_usd=args.max_usd)
+        print(f"Flag log (spot-check any time with `spot-check`): {log.path}", flush=True)
+        writer = wiring.build_results_writer(s) if args.persist else None
+        save = (lambda res: writer.save(res, trigger="manual")) if writer else None
+        try:
+            report = eval_v2.evaluate_course(s, args.course, args.through_week, options, repeat=args.repeat or 1,
+                                             students=args.students, max_usd=args.max_usd, flag_log=log, persist=save,
+                                             baseline_log=Path(args.baseline_log) if args.baseline_log else None)
+        finally:
+            getattr(writer, "close", lambda: None)()
         json_path, md_path = eval_v2.write_reports(report, s.reports_dir)
     except (LookupError, ValueError, FileNotFoundError) as err:
         return _err(str(err))
@@ -391,6 +406,27 @@ def _fill_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _spot_check(args: argparse.Namespace) -> int:
+    from agentic_lab.spot_check import build_spot_check, latest_log
+
+    s = lab_settings()
+    if args.n <= 0:
+        return _err("--n must be positive")
+    try:
+        log = Path(args.log) if args.log else latest_log(s.reports_dir)
+        out = Path(args.out) if args.out else s.reports_dir / f"spot-check-{datetime.now().strftime('%Y%m%dT%H%M%S')}.md"
+        path, items, subs = build_spot_check(log, s.data_dir, s.standards_file, out, n=args.n, seed=args.seed,
+                                             removed=args.removed)
+    except (LookupError, ValueError, FileNotFoundError) as err:
+        return _err(str(err))
+    except Exception as err:  # noqa: BLE001 - class + status only
+        print(f"spot-check failed: {_failure(err)}", file=sys.stderr)
+        return 1
+    print(f"{items} flags from {subs} reviewed submissions so far ({log.name})")
+    print(f"Spot check: {path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="agentic_lab")
     sub = p.add_subparsers(dest="command", required=True)
@@ -403,11 +439,19 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--course", help="v2 course folder version (e.g. 2.00-control): score against its answer key")
     ev.add_argument("--through-week", type=int, help="with --course: only assignments due by this week")
     ev.add_argument("--pipeline", choices=["mvp", "v2"], help="with --course (default: REVIEW_PIPELINE)")
-    ev.add_argument("--profile", choices=["lean", "full", "graded"], help="with --course (default: BANDS_PROFILE)")
+    ev.add_argument("--profile", choices=["lean", "full", "graded", "supervised"], help="with --course (default: BANDS_PROFILE)")
     ev.add_argument("--reasoning", action="append", default=[], metavar="REVIEWER=LEVEL",
                     help="with --course: reasoning level for one reviewer (default, low, medium or high), "
                          "e.g. 3-5-all=low (repeatable)")
+    ev.add_argument("--persist", action="store_true",
+                    help="with --course: also save each submission's first review to Postgres (for analyze); "
+                         "seed the classrooms first")
     ev.add_argument("--repeat", type=int, help="with --course: runs per submission, for run-to-run agreement")
+    ev.add_argument("--no-planner", action="store_true", help="with --course --profile supervised: skip the planner")
+    ev.add_argument("--no-critic", action="store_true", help="with --course --profile supervised: skip the critic")
+    ev.add_argument("--no-arbiter", action="store_true", help="with --course --profile supervised: skip the arbiter")
+    ev.add_argument("--baseline-log", help="with --course: an earlier run's flags-*.jsonl, scored on the same "
+                    "submissions as the baseline row of the By stage table")
     ev.add_argument("--max-usd", type=float, help="with --course: stop starting submissions once the priced "
                     "spend so far exceeds this (writes a partial report)")
     ev.add_argument("--strategy", choices=["full", "rag", "both"])
@@ -461,6 +505,14 @@ def main(argv: list[str] | None = None) -> int:
     st.add_argument("--source", choices=["answer-key", "db"], default="answer-key",
                     help="verdicts from the answer key (no reviews needed) or from Postgres")
     st.set_defaults(func=_study)
+    sc = sub.add_parser("spot-check", help="a Markdown file of unplanted flags to mark by hand (works mid-run)")
+    sc.add_argument("--log", help="flag log from evaluate --course (default: the newest in the reports folder)")
+    sc.add_argument("--n", type=int, default=15, help="flags to sample (default 15)")
+    sc.add_argument("--seed", type=int, default=7)
+    sc.add_argument("--out", help="Markdown path (default: reports folder)")
+    sc.add_argument("--removed", action="store_true",
+                    help="sample the flags the supervised profile's critic and arbiter removed, to check the removals")
+    sc.set_defaults(func=_spot_check)
     fd = sub.add_parser("fill-demo", help="fill Postgres with labelled demo reviews from the answer key (no API keys)")
     fd.add_argument("--through-week", type=int, default=7, help="last week to fill (default 7: trends are still moving)")
     fd.add_argument("--reset", action="store_true", help="delete the 2.00 classrooms' review results first (DEV/DEMO)")

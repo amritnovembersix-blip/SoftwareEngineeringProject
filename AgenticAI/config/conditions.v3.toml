@@ -1,0 +1,16 @@
+# Where each skill is often tested: context for the reviewer, not a checklist (audit finding R5).
+# conditions.v3: conditions.v2 without "titles of works" under L.1.B, which drew unplanted title-underlining flags
+# (docs/evaluations/2026-11-18-reviewer-fixes-phase1-2.00-control-wk3.md). Keys are strand.bigIdea.concept; a "3-5:" or
+# "6+:" prefix limits an entry to that band (finding R7). Lookup tries the band key, then the plain key.
+
+"L.1.A" = ["sentences with more than one clause", "verb tenses across a passage", "pronouns across a passage",
+           "relative pronouns and adverbs"]
+"L.1.B" = ["compound sentences joined by a conjunction", "introductory clauses",
+           "possessive nouns", "spelling of less common words"]
+"3-5:W.2.A" = ["stating an opinion with reasons", "an introduction and a conclusion", "transitions between reasons"]
+"6+:W.2.A" = ["developing a claim or idea at length", "choosing supporting details", "organizing a multi-paragraph piece"]
+"6+:W.3.A" = ["a full essay or multi-paragraph piece", "word choice and style across a piece",
+              "transitions between ideas"]
+"RL.1.A" = ["claims about a character or theme", "inferences from a passage", "choosing evidence from the text"]
+"RI.1.A" = ["claims about a nonfiction text", "inferences from a passage", "choosing evidence from the text"]
+"R.1.A" = ["answering a question about a passage", "conclusions drawn from the text", "explicit and inferred details"]

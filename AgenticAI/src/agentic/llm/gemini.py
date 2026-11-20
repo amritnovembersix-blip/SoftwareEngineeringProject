@@ -51,14 +51,19 @@ def _sleep(seconds: float) -> None:
     time.sleep(seconds)
 
 
+
+def _http_options(timeout_s: float) -> types.HttpOptions:
+    """A time limit on every request, so a hung call fails (and can be retried) instead of hanging a run."""
+    return types.HttpOptions(timeout=int(timeout_s * 1000))  # the SDK takes milliseconds
+
 class GeminiChatModel:
     def __init__(self, model: str, api_key: str, rpm: int, client=None, limiter: RateLimiter | None = None,
-                 reasoning: str = "default"):
+                 reasoning: str = "default", timeout_s: float = 120):
         """`limiter` lets several instances (parallel reviews) share one calls-per-minute budget.
         `reasoning` is default, low, medium or high (see `thinking_config`)."""
         self.model_name = model
         self.reasoning = check_reasoning(reasoning, "GeminiChatModel")
-        self._client = client or genai.Client(api_key=api_key)
+        self._client = client or genai.Client(api_key=api_key, http_options=_http_options(timeout_s))
         self._limiter = limiter or RateLimiter(rpm, sleep=_sleep)
 
     def complete(self, system: str, user: str, schema: type[T]) -> tuple[T, Usage]:
@@ -99,10 +104,10 @@ class GeminiChatModel:
 
 
 class GeminiEmbedder:
-    def __init__(self, model: str, api_key: str, dim: int, rpm: int, client=None):
+    def __init__(self, model: str, api_key: str, dim: int, rpm: int, client=None, timeout_s: float = 120):
         self.model_name = model
         self._dim = dim
-        self._client = client or genai.Client(api_key=api_key)
+        self._client = client or genai.Client(api_key=api_key, http_options=_http_options(timeout_s))
         self._limiter = RateLimiter(rpm, sleep=_sleep)
 
     def embed(self, texts: list[str], kind: Literal["document", "query"]) -> list[list[float]]:

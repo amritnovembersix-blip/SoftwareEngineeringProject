@@ -101,3 +101,20 @@ def test_prompt_override_must_fit_the_reviewers_mode(profile, version):
 def test_prompt_override_to_a_newer_search_prompt_resolves():
     r = ReviewOptions(profile="graded", prompt_versions={"6+-writing": "v4"}).resolve(Settings(), DEFAULTS)
     assert r.prompts["6+-writing"] == "progression.v4"
+
+
+# ---- supervisor switches (review supervisor, Task 1) ----
+
+def test_run_switches_turn_steps_off():
+    r = ReviewOptions(profile="supervised", critic=False).resolve(Settings(), DEFAULTS)
+    assert r.supervisor.critic is False and r.supervisor.planner is True and r.supervisor.arbiter is True
+
+
+def test_no_switches_keep_the_profiles_supervisor_and_graded_has_none():
+    assert ReviewOptions(profile="supervised").resolve(Settings(), DEFAULTS).supervisor.critic is True
+    assert ReviewOptions(profile="graded").resolve(Settings(), DEFAULTS).supervisor is None
+
+
+def test_switches_on_a_profile_without_supervisor_are_an_error():
+    with pytest.raises(ValueError, match="no supervisor"):
+        ReviewOptions(profile="graded", critic=False).resolve(Settings(), DEFAULTS)

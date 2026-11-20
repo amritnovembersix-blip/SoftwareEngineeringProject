@@ -11,7 +11,7 @@ from agentic.tuning import (
 CONFIG = PACKAGE_ROOT / "config"
 PROMPTS = PACKAGE_ROOT / "prompts"
 CATALOG = PACKAGE_ROOT / "standards" / "mls-ela-reviewable-v2.xlsx"
-PROFILES = ["full", "lean", "graded"]
+PROFILES = ["full", "lean", "graded", "supervised"]
 
 
 @pytest.fixture(scope="module")
@@ -378,3 +378,123 @@ def test_graded_profile_uses_per_standard_v2_while_full_and_lean_stay_on_v1():
         assert {r.prompt for r in profile if r.mode == "per_standard"} == {"per_standard.v1"}
     for name in PROFILES:
         validate_tuning(CONFIG, PROMPTS, name)
+
+
+# --- supervised profile (review supervisor, Task 1) ---
+
+import dataclasses  # noqa: E402
+
+from agentic.tuning import SupervisorSpec  # noqa: E402
+
+GRADED_HASH = "adc1e31be107cbbad47141d0c44e6a90c06ffd7a509420a964ba0c958271a006"  # main, 2026-11-17
+
+
+def test_supervised_profile_is_the_reviewer_fixes_profile():
+    sup = load_profile(CONFIG, "supervised")
+    ids = [r.id for r in sup.reviewers]
+    assert ids == [f"{g}-{n}" for g in (3, 4, 5) for n in ("language", "writing", "reading")] + ["6+-writing",
+                                                                                         "6+-reading"]
+    graded = {r.id: r for r in load_profile(CONFIG, "graded").reviewers}
+    for r in sup.reviewers:  # graded's layout and modes; only the prompts change
+        assert (r.grades, r.strands, r.mode) == (graded[r.id].grades, graded[r.id].strands, graded[r.id].mode), r.id
+    assert {r.prompt for r in sup.reviewers} == {"per_standard.v5", "progression.v5"}
+    assert sup.conditions == "conditions.v3"
+    assert sup.supervisor == SupervisorSpec(True, True, True, "planner.v1", "critic.v1", "arbiter.v1",
+                                            "low", "high", "high", 60, 15)
+
+
+def test_per_standard_v4_files_errors_at_the_lowest_grade_and_defines_levels():
+    flat = " ".join(load_prompt(PROMPTS, "per_standard.v4").split())
+    assert "under the lowest grade whose standard describes it" in flat
+    assert "one slip" in flat and "repeated pattern" in flat and "mostly absent or wrong" in flat
+    assert "Where this skill is often tested (context, not a checklist):" in flat
+    assert "the work may well meet it" in flat  # the v3 callout stays
+
+
+def test_per_standard_v5_is_v4_without_the_lowest_grade_rule():
+    v4 = " ".join(load_prompt(PROMPTS, "per_standard.v4").split())
+    v5 = " ".join(load_prompt(PROMPTS, "per_standard.v5").split())
+    assert "lowest grade" not in v5
+    rule = ("When one error falls short of standards at several grades, report it once, under the lowest grade whose "
+            "standard describes it, and mark the others meets. Root cause traces a problem to its lowest grade. ")
+    assert v4.replace(rule, "") == v5
+
+
+def test_conditions_v3_is_v2_without_titles_of_works():
+    v2 = load_conditions(CONFIG, "conditions.v2")
+    v3 = load_conditions(CONFIG, "conditions.v3")
+    assert v3["L.1.B"] == [c for c in v2["L.1.B"] if c != "titles of works"]
+    assert {k: v for k, v in v3.items() if k != "L.1.B"} == {k: v for k, v in v2.items() if k != "L.1.B"}
+
+
+def test_graded_hash_is_unchanged_and_supervisor_changes_it():
+    g = load_profile(CONFIG, "graded")
+    c = load_conditions(CONFIG)
+    t = {r.prompt: load_prompt(PROMPTS, r.prompt) for r in g.reviewers}
+    assert tuning_hash(g, c, t) == GRADED_HASH
+    assert tuning_hash(dataclasses.replace(g, name="supervised"), c, t) != tuning_hash(
+        load_profile(CONFIG, "supervised"), c, t)
+
+
+_SUP = {"planner": "true", "critic": "true", "arbiter": "true", "planner_prompt": '"planner.v1"',
+        "critic_prompt": '"critic.v1"', "arbiter_prompt": '"arbiter.v1"', "planner_reasoning": '"low"',
+        "critic_reasoning": '"high"', "arbiter_reasoning": '"high"', "critic_max_items": "60",
+        "arbiter_max_clusters": "15"}
+
+
+@pytest.mark.parametrize("key,value", [("critic_reasoning", '"huge"'), ("critic_max_items", "0"),
+                                       ("planner_prompt", '"planner"'), ("arbiter", '"yes"')])
+def test_bad_supervisor_values_are_rejected(tmp_path, key, value):
+    cfg, _ = _tuning_copy(tmp_path)
+    table = "\n".join(f"{k} = {value if k == key else v}" for k, v in _SUP.items())
+    (cfg / "bands.toml").write_text("[profiles.x]\n[[profiles.x.reviewers]]\n" + _lines()
+                                    + "[profiles.x.supervisor]\n" + table + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=r"profiles\.x\.supervisor"):
+        load_profile(cfg, "x")
+
+
+from agentic.tuning import prompt_version  # noqa: E402
+
+
+def test_prompt_version():
+    assert prompt_version("progression.v5") == 5 and prompt_version("per_standard.v12") == 12
+    assert prompt_version("odd") == 0
+
+
+def test_progression_v5_asks_for_short_of_and_defines_levels():
+    flat = " ".join(load_prompt(PROMPTS, "progression.v5").split())
+    assert "short_of" in flat and "one slip" in flat and "repeated pattern" in flat
+    assert "Where this skill is often tested (context, not a checklist):" in flat
+
+
+# ---- R5: per-profile conditions with grade-band keys ----
+
+def test_profile_conditions_default_and_override(tmp_path):
+    assert load_profile(CONFIG, "graded").conditions == "conditions"
+    (tmp_path / "bands.toml").write_text(
+        '[profiles.p]\nconditions = "conditions.v2"\n[[profiles.p.reviewers]]\nid = "3-language"\ngrades = [3, 3]\n'
+        'strands = ["L"]\nmode = "per_standard"\nprompt = "per_standard.v3"\n', encoding="utf-8")
+    assert load_profile(tmp_path, "p").conditions == "conditions.v2"
+
+
+def test_profile_conditions_name_must_be_conditions_or_a_version(tmp_path):
+    (tmp_path / "bands.toml").write_text('[profiles.p]\nconditions = "other"\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="conditions"):
+        load_profile(tmp_path, "p")
+
+
+def test_conditions_v2_keys_are_band_concepts_of_catalog_codes(catalog):
+    concepts = {".".join(r.code.split(".")[1:4]) for r in catalog}
+    v2 = load_conditions(CONFIG, "conditions.v2")
+    for key, items in v2.items():
+        band, _, concept = key.rpartition(":")
+        assert band in ("", "3-5", "6+") and concept in concepts, key
+        assert 3 <= len(items) <= 6
+    assert "W.3.A" not in v2 and "W.2.A" not in v2 and "W.1.A" not in v2  # these cross grade 6: band keys only
+
+
+@pytest.mark.parametrize("key", ["6-8:W.3.A", "K:L.1.A"])
+def test_conditions_band_key_must_be_3_5_or_6_plus(tmp_path, key):
+    (tmp_path / "c.toml").write_text(f'"{key}" = ["a", "b", "c"]\n', encoding="utf-8")
+    with pytest.raises(ValueError, match=f"c.toml {key!r}"):
+        load_conditions(tmp_path, "c")

@@ -37,6 +37,18 @@ WHERE submission.review_status = 'failed'
 RETURNING id
 """
 
+# The newest reviewed attempt of a submission is the one that counts (a resubmission replaces the wrong paper or
+# an old draft in trends). Older reviewed attempts get superseded_at; their rows stay as history. An older attempt
+# saved after a newer one is superseded at once. Runs in the persist transaction, after this attempt succeeded:
+# a concurrent save of another attempt blocks on the row lock and re-checks, so neither is left current twice.
+_SUPERSEDE = """
+UPDATE submission SET superseded_at = now()
+WHERE lms_submission_id = %(sub)s AND review_status = 'succeeded' AND superseded_at IS NULL
+  AND (attempt < %(attempt)s
+       OR (id = %(sid)s AND EXISTS (SELECT 1 FROM submission n WHERE n.lms_submission_id = %(sub)s
+                                     AND n.attempt > %(attempt)s AND n.review_status = 'succeeded')))
+"""
+
 
 class PostgresResultsWriter:
     def __init__(self, conn):
@@ -142,6 +154,7 @@ class PostgresResultsWriter:
             self._persist_v2(result, sid, std, finding_ids)
         c.execute("UPDATE submission SET review_status = 'succeeded', reviewed_at = now(), "
                   "chunker_version = %s WHERE id = %s", (CHUNKER_VERSION_V2 if v2 else CHUNKER_VERSION, sid))
+        c.execute(_SUPERSEDE, {"sub": ref.submission_id, "attempt": ref.attempt, "sid": sid})
         c.execute("UPDATE review_run SET status = 'succeeded', completed_count = 1, finished_at = now() "
                   "WHERE id = %s", (run_id,))
         return None

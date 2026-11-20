@@ -3,7 +3,7 @@ import hashlib
 import json
 import re
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Literal
 
@@ -25,9 +25,27 @@ class ReviewerSpec:
 
 
 @dataclass(frozen=True)
+class SupervisorSpec:
+    """The supervised profile's extra steps: planner, critic, arbiter (review supervisor spec)."""
+    planner: bool
+    critic: bool
+    arbiter: bool
+    planner_prompt: str
+    critic_prompt: str
+    arbiter_prompt: str
+    planner_reasoning: str
+    critic_reasoning: str
+    arbiter_reasoning: str
+    critic_max_items: int
+    arbiter_max_clusters: int
+
+
+@dataclass(frozen=True)
 class Profile:
     name: str
     reviewers: list[ReviewerSpec] = field(default_factory=list)
+    supervisor: SupervisorSpec | None = None
+    conditions: str = "conditions"  # the conditions file under agentic/config, without .toml
 
 
 _STRANDS = {"L", "W", "R", "RL", "RI"}
@@ -82,14 +100,44 @@ def load_profile(config_dir: Path, name: str) -> Profile:
     if name not in profiles:
         raise ValueError(f"bands.toml: unknown profile {name!r}; choose one of {', '.join(profiles)}")
     where = f"bands.toml profiles.{name}"
-    return Profile(name=name, reviewers=[_reviewer(where, r) for r in profiles[name].get("reviewers", [])])
+    sup = profiles[name].get("supervisor")
+    conditions = profiles[name].get("conditions", "conditions")
+    if not (isinstance(conditions, str) and re.fullmatch(r"conditions(\.v\d+)?", conditions)):
+        raise ValueError(f"{where}: conditions must be \"conditions\" or \"conditions.vN\", got {conditions!r}")
+    return Profile(name=name, reviewers=[_reviewer(where, r) for r in profiles[name].get("reviewers", [])],
+                   supervisor=None if sup is None else _supervisor(f"{where}.supervisor", sup),
+                   conditions=conditions)
 
 
-def load_conditions(config_dir: Path) -> dict[str, list[str]]:
+def _supervisor(where: str, d: dict) -> SupervisorSpec:
+    names = [f.name for f in fields(SupervisorSpec)]
+    missing = [k for k in names if k not in d]
+    if missing:
+        raise ValueError(f"{where}: missing keys {missing}")
+    for k in ("planner", "critic", "arbiter"):
+        if not isinstance(d[k], bool):
+            raise ValueError(f"{where}: {k} must be true or false")
+    for k in ("planner_prompt", "critic_prompt", "arbiter_prompt"):
+        if not (isinstance(d[k], str) and re.fullmatch(r"[a-z_]+\.v\d+", d[k])):
+            raise ValueError(f"{where}: {k} must look like \"name.v1\", got {d[k]!r}")
+    for k in ("planner_reasoning", "critic_reasoning", "arbiter_reasoning"):
+        check_reasoning(d[k], f"{where}.{k}")
+    for k in ("critic_max_items", "arbiter_max_clusters"):
+        if not (isinstance(d[k], int) and not isinstance(d[k], bool) and d[k] >= 1):
+            raise ValueError(f"{where}: {k} must be an integer of 1 or more, got {d[k]!r}")
+    return SupervisorSpec(**{k: d[k] for k in names})
+
+
+def load_conditions(config_dir: Path, name: str = "conditions") -> dict[str, list[str]]:
+    """Keys are concepts (strand.bigIdea.concept), optionally limited to a band: "3-5:W.3.A" or "6+:W.3.A"."""
     out: dict[str, list[str]] = {}
-    for k, v in _read_toml(Path(config_dir) / "conditions.toml").items():
+    file = f"{name}.toml"
+    for k, v in _read_toml(Path(config_dir) / file).items():
         if not (isinstance(v, list) and v and all(isinstance(x, str) for x in v)):
-            raise ValueError(f"conditions.toml {k!r}: must be a non-empty list of strings")
+            raise ValueError(f"{file} {k!r}: must be a non-empty list of strings")
+        band, sep, _ = k.rpartition(":")
+        if sep and band not in ("3-5", "6+"):
+            raise ValueError(f"{file} {k!r}: a band prefix must be 3-5 or 6+")
         out[k] = list(v)
     return out
 
@@ -110,11 +158,16 @@ def load_prompt(prompts_dir: Path, ref: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def prompt_version(ref: str) -> int:
+    """The N of a prompt ref "name.vN"; 0 when it has none."""
+    m = re.fullmatch(r".+\.v(\d+)", ref)
+    return int(m.group(1)) if m else 0
+
+
 def check_mode_prompt(reviewer: str, mode: str, prompt: str) -> None:
     """Ruling S1-5: a reviewer's prompt must fit its reply shape. Mode search needs progression.v3 or
     later (one step per group); mode progression needs progression.v1 or v2 (every step at once)."""
-    m = re.fullmatch(r"(.+)\.v(\d+)", prompt)
-    name, version = (m.group(1), int(m.group(2))) if m else (prompt, 0)
+    name, version = prompt.rsplit(".v", 1)[0] if prompt_version(prompt) else prompt, prompt_version(prompt)
     if mode == "search" and not (name == "progression" and version >= 3):
         raise ValueError(f"reviewer {reviewer!r}: mode search needs prompt progression.v3 or later, got {prompt!r}")
     if mode == "progression" and not (name == "progression" and version in (1, 2)):
@@ -126,11 +179,15 @@ def validate_tuning(config_dir: Path, prompts_dir: Path, profile_name: str) -> P
     """Fail fast at startup: load the profile, conditions and pricing, check every prompt exists and
     fits its reviewer's mode."""
     profile = load_profile(config_dir, profile_name)
-    load_conditions(config_dir)
+    load_conditions(config_dir, profile.conditions)
     load_pricing(config_dir)
     for spec in profile.reviewers:
         check_mode_prompt(spec.id, spec.mode, spec.prompt)
         load_prompt(prompts_dir, spec.prompt)
+    if profile.supervisor is not None:
+        for ref in (profile.supervisor.planner_prompt, profile.supervisor.critic_prompt,
+                    profile.supervisor.arbiter_prompt):
+            load_prompt(prompts_dir, ref)
     return profile
 
 
@@ -148,6 +205,8 @@ def tuning_hash(profile: Profile, conditions: dict[str, list[str]], prompt_texts
         "conditions": conditions,
         "prompts": prompt_texts,
     }
+    if profile.supervisor is not None:  # only a supervised profile adds it: earlier hashes stay valid
+        canon["profile"]["supervisor"] = asdict(profile.supervisor)
     return hashlib.sha256(json.dumps(canon, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 

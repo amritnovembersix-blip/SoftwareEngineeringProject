@@ -56,7 +56,7 @@ class CourseDirLMSClient:
         return Assignment(
             id=lms_assignment_id(a.id, self._version), name=a.title, description=a.prompt, notes=a.notes,
             submission_type=a.type, due_at=due_at(start, a.due_offset),
-            items=[i.model_dump() for i in a.items], reading_strand=strand,
+            items=[i.model_dump() for i in a.items], reading_strand=strand, targets=list(a.targets),
         )
 
     def get_submission(self, course_id: str, assignment_id: str, user_id: str) -> Submission:

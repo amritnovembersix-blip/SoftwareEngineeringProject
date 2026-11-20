@@ -50,6 +50,8 @@ def _review(args: argparse.Namespace) -> int:
     v2_only = [flag for flag, given in (("--pipeline", args.pipeline), ("--profile", args.profile),
                                         ("--prompt", args.prompt), ("--reasoning", args.reasoning),
                                         ("--no-root-cause", args.no_root_cause),
+                                        ("--no-planner", args.no_planner), ("--no-critic", args.no_critic),
+                                        ("--no-arbiter", args.no_arbiter),
                                         ("--json", args.json)) if given]
     if v2_only:
         return _err(f"{', '.join(v2_only)} need the --course form (--course, --assignment and --student); "
@@ -113,7 +115,10 @@ def _review_course(args: argparse.Namespace) -> int:
                                 prompt_versions=_prompt_versions(args.prompt),
                                 reasoning=reasoning_levels(args.reasoning),
                                 root_cause=False if args.no_root_cause else None,
-                                verify=False if args.no_verify else None)
+                                verify=False if args.no_verify else None,
+                                planner=False if args.no_planner else None,
+                                critic=False if args.no_critic else None,
+                                arbiter=False if args.no_arbiter else None)
         user_id = _resolve_roster_student(s, args.course, args.student_flag)
         resolved = wiring.resolve_options(s, options)
         for reviewer in options.prompt_versions:  # a missing prompt file fails before any model call
@@ -282,6 +287,10 @@ def _analysis_summary(version: str, as_of: datetime, scope_student: bool, out) -
     lines = [f"Classroom {version}   as of {as_of.isoformat()}   run {out.run_id}",
              f"Concept statuses: {len(out.statuses)}",
              "  " + (", ".join(f"{k} {n}" for k, n in sorted(counts.items())) or "none")]
+    if out.statuses:
+        trends = {t: sum(1 for st in out.statuses if st.trend == t)
+                  for t in ("improving", "declining", "steady", "unclear")}
+        lines.append("Trends: " + ", ".join(f"{t} {n}" for t, n in trends.items()))
     if scope_student:
         return "\n".join(lines)
     lines.append("Top gaps (concept, students, top condition):")
@@ -353,12 +362,15 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--assignment", help="assignment file id, e.g. ela9v2-a02 (with --course)")
     r.add_argument("--student", dest="student_flag", metavar="PREFIX", help="student hash prefix (with --course)")
     r.add_argument("--pipeline", choices=["mvp", "v2"])
-    r.add_argument("--profile", help="reviewer profile in config/bands.toml (full or lean)")
+    r.add_argument("--profile", help="reviewer profile in config/bands.toml (full, lean, graded or supervised)")
     r.add_argument("--prompt", action="append", default=[], metavar="REVIEWER=VERSION",
                    help="use a prompt version for one reviewer, e.g. 3-5-language=v2 (repeatable)")
     r.add_argument("--reasoning", action="append", default=[], metavar="REVIEWER=LEVEL",
                    help="reasoning level for one reviewer (default, low, medium or high), e.g. 3-5-all=low (repeatable)")
     r.add_argument("--no-root-cause", action="store_true")
+    r.add_argument("--no-planner", action="store_true", help="supervised profile: skip the planner step")
+    r.add_argument("--no-critic", action="store_true", help="supervised profile: skip the critic step")
+    r.add_argument("--no-arbiter", action="store_true", help="supervised profile: skip the arbiter step")
     r.add_argument("--json", metavar="PATH", help="write the full result, including the trace, to a file")
     r.add_argument("--classroom")
     r.add_argument("--strategy", choices=["full", "rag"])
