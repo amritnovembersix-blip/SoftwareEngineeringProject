@@ -101,7 +101,8 @@ def make_fetch(lms, use_context: bool = True):
         assignment = lms.get_assignment(ref.course_id, ref.assignment_id) if use_context else None
         return {
             "course_grade": course.grade_level,
-            "submission_ref": ref.model_copy(update={"submitted_at": sub.submitted_at}),
+            "submission_ref": ref.model_copy(update={  # the attempt actually reviewed: the LMS serves the latest
+            "submission_id": sub.id, "attempt": sub.attempt, "submitted_at": sub.submitted_at}),
             "body": sub.body,
             "assignment": assignment,
         }

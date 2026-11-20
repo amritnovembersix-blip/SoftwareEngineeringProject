@@ -33,6 +33,7 @@ from agentic.models import Dropped, ReviewResult
 from agentic.review.v2.options import ReviewOptions
 from agentic.review.v2.run import review_one
 from agentic.review.v2.scope import group_of
+from agentic.review.v2.supervisor import concept_line, grade_of
 from agentic.standards.strand_filter import strand_of
 from agentic_lab.answer_key import ExpectedRow, FidelityRow, StudentKey, TrajectoryRow, answer_key_path
 from agentic_lab.eval import Counts, concept_of, score
@@ -192,6 +193,52 @@ class Drops(BaseModel):
     unreviewed_by_reviewer: dict[str, dict[str, int]] = {}  # reviewer ("unknown") -> reason -> planted codes
 
 
+class ChainFlags(BaseModel):
+    """Unplanted growth areas on the concept line of a planted code at another grade: the progression chain,
+    by design (the downward search marks every unmet step). Exact scores are also shown without them."""
+    count: int
+    exact_without: Scores
+    offsets: dict[str, int] = {}  # "below 1" ... "above 3+": grade steps to the nearest planted code on the line
+    below_by_strand: dict[str, int] = {}  # the chain flags below a planted code, by strand
+
+
+GRADE_STEPS = ["3", "4", "5", "6", "7", "8", "9-10", "11-12"]
+
+
+def _counts(d: dict[str, int]) -> str:
+    return ", ".join(f"{k} {v}" for k, v in sorted(d.items())) or "none"
+
+
+def _offsets_text(c: "ChainFlags") -> str:
+    order = [f"{d} {n}" for d in ("below", "above") for n in ("1", "2", "3+")]
+    return f" ({', '.join(f'{k}: {c.offsets[k]}' for k in order if k in c.offsets)})" if c.offsets else ""
+
+
+def chain_offset(code: str, planted) -> int | None:
+    """Grade steps from `code` to the nearest planted code on its concept line at another grade: positive when
+    `code` is below it, negative when above; a tie counts as below. None when no such planted code."""
+    if grade_of(code) not in GRADE_STEPS:
+        return None
+    at = GRADE_STEPS.index(grade_of(code))
+    gaps = [GRADE_STEPS.index(grade_of(p)) - at for p in planted
+            if concept_line(p) == concept_line(code) and grade_of(p) != grade_of(code) and grade_of(p) in GRADE_STEPS]
+    return min(gaps, key=lambda g: (abs(g), -g)) if gaps else None
+
+
+def _offset_bucket(gap: int) -> str:
+    return f"{'below' if gap > 0 else 'above'} {abs(gap) if abs(gap) < 3 else '3+'}"
+
+
+class StepCounts(BaseModel):
+    """Supervised profile: what the planner, critic and arbiter did, summed over first runs."""
+    skipped: dict[str, int]  # reviewer -> submissions it was skipped for
+    dropped_met: int
+    dropped_not_shown: int
+    absorbed: int
+    capped: dict[str, int]
+    invalid: dict[str, int]
+
+
 class EvalV2Report(BaseModel):
     course: str
     through_week: int | None
@@ -214,6 +261,11 @@ class EvalV2Report(BaseModel):
     stopped: str | None = None  # exception class, or "max_usd", that ended the run early
     max_usd: float | None = None  # the spend cap the run was given
     notes: list[str] = []
+    stages: dict[str, GrowthBlock] = {}  # supervised: scores after each step, from the trace
+    stage_planted_lost: dict[str, int] = {}  # planted codes present before a step and gone after it
+    baseline: GrowthBlock | None = None  # --baseline-log: the same submissions, scored from an earlier flag log
+    chain: ChainFlags | None = None
+    steps: StepCounts | None = None
 
 
 def _scores(c: Counts) -> Scores:
@@ -379,10 +431,13 @@ def _usage_by_reviewer(results: list[ReviewResult]) -> dict[str, ReviewerUsage]:
 
 def evaluate_course(s: Settings, version: str, through_week: int | None, options: ReviewOptions,
                     repeat: int = 1, students: int | None = None, max_usd: float | None = None,
-                    review_fn: Callable = review_one) -> EvalV2Report:
+                    review_fn: Callable = review_one, flag_log: Callable | None = None,
+                    persist: Callable | None = None, baseline_log: Path | None = None) -> EvalV2Report:
     """Review every released submission of `version` (assignments due by `through_week`, first `students`
     roster students) `repeat` times, and score the first run against the answer key. With `max_usd`, stop
-    starting submissions once the priced spend so far exceeds it (the report is partial, `stopped="max_usd"`)."""
+    starting submissions once the priced spend so far exceeds it (the report is partial, `stopped="max_usd"`).
+    `flag_log(result, file_id, student, planted)` is called after each review, so flags can be spot-checked mid-run.
+    `persist(result)` saves each submission's first run (for `analyze`); repeats are never saved."""
     cd = CourseDir(s.data_dir, version)
     course = cd.course()
     key_dir = answer_key_path(s.data_dir, version)
@@ -423,6 +478,14 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
     every: list[ReviewResult] = []
     verdict_runs: list[list[dict[str, str]]] = []  # per submission, per run: code -> verdict
     stopped = None
+    stage_lost: Counter[str] = Counter()
+    chain_count = 0
+    chain_offsets: Counter[str] = Counter()
+    chain_below: Counter[str] = Counter()
+    steps = {"skipped": Counter(), "dropped:met": 0, "dropped:not_shown": 0, "absorbed": 0,
+             "capped": Counter(), "invalid": Counter()}
+    supervised = False
+    scored_keys: set[tuple[str, str]] = set()  # (file assignment id, student) scored with stages, for the baseline
 
     for assignment in cd.assignments():
         if through_week is not None and assignment.due_offset.week > through_week:
@@ -447,12 +510,25 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
                 errors[type(err).__name__] += 1
                 continue
             res = runs[0]
+            if persist is not None:
+                persist(res)
             if max_usd is not None:
                 spent += _cost(s, runs, options.profile or s.bands_profile, 1).priced_usd
             counts["reviewed"] += 1
             every += runs
+            sup = res.trace.get("supervisor")
+            if sup is not None:
+                supervised = True
+                steps["skipped"].update(sup.get("planner", {}).get("skipped", {}).keys())
+                for c in sup["changes"]:
+                    steps[c["action"]] += 1
+                steps["capped"].update(sup["capped"])
+                steps["invalid"].update(sup["invalid"])
             verdict_runs.append([{v.standard_code: v.verdict for v in r.verdicts} for r in runs])
             key = expected.get(row.submission_id)
+            if flag_log is not None:
+                flag_log(res, assignment.id, row.student_hash,
+                         None if key is None else {w.standard: w.level for w in key.weaknesses})
             if key is None:
                 counts["no_key"] += 1
                 continue
@@ -468,6 +544,23 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
                 counts["excluded_fidelity"] += 1
                 continue
             counts["scored"] += 1
+            if res.trace.get("stages"):  # the baseline row covers the same submissions as the stage rows
+                scored_keys.add((assignment.id, row.student_hash))
+            prev = None
+            for name, codes in res.trace.get("stages", {}).items():
+                tally.add(f"stage:{name}", set(codes), set(planted))
+                if prev is not None:
+                    stage_lost[name] += len((prev & planted.keys()) - set(codes))
+                prev = set(codes)
+            chain = {code for code in found.keys() - planted.keys()
+                     if any(concept_line(code) == concept_line(p) and grade_of(code) != grade_of(p) for p in planted)}
+            chain_count += len(chain)
+            for code in chain:
+                gap = chain_offset(code, planted)
+                chain_offsets[_offset_bucket(gap)] += 1
+                if gap > 0:
+                    chain_below[strand_of(code)] += 1
+            tally.add("no_chain", set(found) - chain, set(planted))
             for code in found.keys() - planted.keys():  # over-flagging, by concept and by family
                 names = [f.name for f in families.values() if code in f.codes] or ["(none)"]
                 flag_concepts[concept_of(code)] += 1
@@ -554,6 +647,11 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
                          if d.reason.startswith("level_inversion:"))
     keys = tally.groups.keys()
     overall = tally.block("all")
+    stage_names = list(dict.fromkeys(n for r in every for n in r.trace.get("stages", {})))
+    baseline = None
+    if baseline_log is not None:
+        baseline = baseline_from_log(baseline_log, {a for a, _ in scored_keys}, {h for _, h in scored_keys},
+                                     keys=scored_keys)
     profile = options.profile or s.bands_profile
     return EvalV2Report(
         course=version, through_week=through_week, pipeline=resolved, profile=profile, repeat=repeat,
@@ -594,7 +692,32 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
         cost=_cost(s, every, profile, counts["reviewed"]), usage_by_reviewer=_usage_by_reviewer(every),
         agreement=agreement, stopped=stopped, max_usd=max_usd,
         notes=[] if v2 else ["pipeline mvp: no verdicts, so the by-reviewer, support-level and agreement "
-                             "blocks are not computed"])
+                             "blocks are not computed"],
+        stages={n: tally.block(f"stage:{n}") for n in stage_names if f"stage:{n}" in keys},
+        stage_planted_lost={n: stage_lost[n] for n in stage_names[1:]},
+        baseline=baseline,
+        chain=ChainFlags(count=chain_count, exact_without=tally.block("no_chain").exact, offsets=dict(chain_offsets),
+                         below_by_strand=dict(chain_below)) if "no_chain" in keys else None,
+        steps=StepCounts(skipped=dict(steps["skipped"]), dropped_met=steps["dropped:met"],
+                         dropped_not_shown=steps["dropped:not_shown"], absorbed=steps["absorbed"],
+                         capped=dict(steps["capped"]), invalid=dict(steps["invalid"])) if supervised else None)
+
+
+def baseline_from_log(log: Path, assignments: set[str], students: set[str], exclude: set[str] = frozenset(),
+                      keys: set[tuple[str, str]] | None = None) -> GrowthBlock:
+    """Scores an earlier run's flag log (spot_check.FlagLog rows) on the given assignments and students, so a
+    supervised run can be compared on the same submissions. `exclude` drops submission ids; `keys`, when given,
+    keeps only those (assignment, student) pairs. Rows without an answer key are skipped."""
+    from agentic_lab.spot_check import read_log  # spot_check imports this module's neighbours; keep it local
+    t = _Tally()
+    t.add("baseline", set(), set())
+    for r in read_log(log):
+        if r.get("planted") is None or r["assignment"] not in assignments or r["student"] not in students:
+            continue
+        if r.get("submission_id") in exclude or (keys is not None and (r["assignment"], r["student"]) not in keys):
+            continue
+        t.add("baseline", {f["standard"] for f in r["flags"]}, set(r["planted"]))
+    return t.block("baseline")
 
 
 def _pct(x: float | None) -> str:
@@ -618,9 +741,26 @@ def format_report(r: EvalV2Report) -> str:
              + ("USD unknown" if r.cost.usd is None else f"USD {r.cost.usd:.4f}")]
     if r.agreement:
         lines.append(f"Agreement over {r.repeat} runs: {_pct(r.agreement.rate)}")
+    if r.stages:
+        rows = ([("baseline (flag log)", r.baseline)] if r.baseline else []) + list(r.stages.items())
+        lines.append("By stage (exact P/R, concept P/R, planted lost): " + "; ".join(
+            f"{n} {b.exact.precision:.2f}/{b.exact.recall:.2f}, {b.concept.precision:.2f}/{b.concept.recall:.2f}"
+            + (f", lost {r.stage_planted_lost[n]}" if n in r.stage_planted_lost else "") for n, b in rows))
+    if r.steps:
+        lines.append(_steps_line(r.steps))
+    if r.chain:
+        lines.append(f"Chain flags: {r.chain.count}{_offsets_text(r.chain)}; exact precision without them "
+                     f"{r.chain.exact_without.precision:.2f}")
     if r.stopped:
         lines.append(f"Stopped early: {r.stopped}")
     return "\n".join(lines)
+
+
+def _steps_line(st: StepCounts) -> str:
+    return (f"Steps: planner skipped {sum(st.skipped.values())} reviewer runs "
+            f"({', '.join(f'{k} x{v}' for k, v in sorted(st.skipped.items())) or '-'}); critic dropped "
+            f"{st.dropped_met} as met and {st.dropped_not_shown} as not shown; arbiter absorbed {st.absorbed}; "
+            f"capped {dict(st.capped) or '-'}; invalid replies {dict(st.invalid) or '-'}")
 
 
 def format_report_markdown(r: EvalV2Report) -> str:
@@ -645,6 +785,24 @@ def format_report_markdown(r: EvalV2Report) -> str:
     head = ["Group", "TP", "FP", "FN", "Precision", "Recall", "Concept precision", "Concept recall"]
     out += ["", "## Growth areas", ""]
     out += table(head, [block("all", r.growth.overall)])
+    if r.stages:
+        rows = ([block("baseline (flag log)", r.baseline)] if r.baseline else []) + [
+            block(n, b) for n, b in r.stages.items()]
+        out += ["", "## By stage", ""]
+        out += table(head, rows)
+        out += ["", "- Planted codes a step removed: " + (", ".join(
+            f"{n} {k}" for n, k in r.stage_planted_lost.items()) or "-"),
+            "- The baseline is the earlier run's flag log on the same scored submissions; the planner's effect "
+            "is the baseline against the reviewers stage.",
+            "- Stage and baseline rows cover written work only (multiple choice has no stages), so the last stage "
+            "can differ slightly from the overall row above."]
+        if r.steps:
+            out += [f"- {_steps_line(r.steps)}"]
+    if r.chain:
+        out += [f"- Chain flags (same concept line as a planted code, another grade): {r.chain.count}"
+                f"{_offsets_text(r.chain)}; exact precision without them {r.chain.exact_without.precision:.2f}",
+                f"- Below a planted code, by strand: {_counts(r.chain.below_by_strand)}. Until R7 (Phase 2), W.1.A, "
+                f"W.2.A and W.3.A chain flags across grade 6 may join different skills."]
     out += ["", "### By reviewer", ""]
     out += table(head, [block(k, v) for k, v in r.growth.by_reviewer.items()])
     out += ["", "### By submission type", ""]

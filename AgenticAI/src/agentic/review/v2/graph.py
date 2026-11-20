@@ -1,8 +1,11 @@
 """v2 LangGraph workflow:
 
 fetch -> route -> mc -> END
-               -> segment -> plan -> band (one Send per reviewer) -> merge -> root_cause -> aggregate
-                  -> verify -> END
+               -> segment -> plan -> band (one Send per reviewer) -> merge -> critic -> arbiter -> root_cause
+                  -> aggregate -> verify -> END
+
+The supervised profile adds a planner inside `plan` and the critic and arbiter steps (each a no-op when off):
+docs/superpowers/specs/2026-11-17-review-supervisor-design.md.
 """
 import time
 from collections.abc import Iterator
@@ -15,7 +18,7 @@ from agentic.decisions.base import DecisionModel
 from agentic.llm.base import ChatModel, chat_key, model_label
 from agentic.lms.base import LMSClient
 from agentic.models import (
-    Finding, MetStandard, ReviewResult, StandardRef, SubmissionRef, Verification, word_count,
+    Finding, MetStandard, Verdict, ReviewResult, StandardRef, SubmissionRef, Verification, word_count,
 )
 from agentic.review.graph import _timed
 from agentic.review.nodes import aggregate
@@ -26,6 +29,7 @@ from agentic.review.v2.options import ResolvedOptions
 from agentic.review.v2.root_cause import RootCauseStep, needs_root_cause
 from agentic.review.v2.scope import BandScope
 from agentic.review.v2.segment import segment
+from agentic.review.v2.supervisor import Arbiter, Critic, Planner, StepResult
 from agentic.review.v2.state import ReviewStateV2
 from agentic.review.verify import verify
 from agentic.settings.base import settings_hash
@@ -85,12 +89,21 @@ def _summary(f: Finding) -> str:
 def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
                    decision: DecisionModel | None, conditions: dict[str, list[str]],
                    templates: dict[str, str], options: ResolvedOptions, profile: Profile,
-                   miss_threshold: float = 0.5, chats: dict[str, ChatModel] | None = None):
+                   miss_threshold: float = 0.5, chats: dict[str, ChatModel] | None = None,
+                   tuning_hash: str = ""):
     """`profile` carries the resolved prompt of each reviewer; `templates` maps each prompt ref to its
     text. `chats` maps a reviewer's `chat_key(model, reasoning)` to its chat; others use `chat`. Dependencies are closed
     over; per-run objects (the band reviewers) live in the state."""
     chats = chats or {}
     strengths = bool(options.settings.get("notable_strengths_enabled"))
+    sup = profile.supervisor
+    supervised = sup is not None and (sup.planner or sup.critic or sup.arbiter)
+
+    def step_chat(level: str) -> ChatModel:
+        return chats.get(chat_key(None, level), chat)
+
+    def growth_codes(verdicts) -> list[str]:
+        return sorted(v.standard_code for v in verdicts if v.verdict == "growth_area")
 
     def fetch(state):
         ref = state["submission_ref"]
@@ -98,7 +111,8 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
         sub = lms.get_submission(ref.course_id, ref.assignment_id, ref.user_id)
         assignment = lms.get_assignment(ref.course_id, ref.assignment_id)
         return {"course_grade": course.grade_level,
-                "submission_ref": ref.model_copy(update={"submitted_at": sub.submitted_at}),
+                "submission_ref": ref.model_copy(update={  # the attempt actually reviewed: the LMS serves the latest
+                    "submission_id": sub.id, "attempt": sub.attempt, "submitted_at": sub.submitted_at}),
                 "assignment": assignment, "submission_type": assignment.submission_type, "submission": sub}
 
     def route(state) -> str:
@@ -121,13 +135,27 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
 
     def plan(state):
         reading = state["assignment"].reading_strand
-        bands, refs = [], {}
-        for spec, lo, hi in plan_reviewers(profile, state["course_grade"]):
+        candidates = plan_reviewers(profile, state["course_grade"])
+        decision = None
+        if sup is not None and sup.planner:
+            planner = Planner(step_chat(sup.planner_reasoning), templates[sup.planner_prompt], tuning_hash)
+            decision = planner.plan(state["assignment"], candidates)
+        bands, refs, skipped_verdicts = [], {}, []
+        for spec, lo, hi in candidates:
             mine = BandScope(standards, lo, hi, _strands(spec.strands, reading)).standards()
             refs.update((s.code, s) for s in mine)
+            if decision is not None and spec.id in decision.skipped:
+                skipped_verdicts += [Verdict(standard_code=s.code, verdict="not_evident", reviewer="planner")
+                                     for s in mine]
+                continue
             own = chats.get(chat_key(spec.model, spec.reasoning), chat)
             bands.append(BandReviewer(spec, lo, hi, _Fixed(mine), own, templates[spec.prompt], conditions))
-        return {"bands": bands, "standards": sorted(refs.values(), key=lambda s: s.code)}
+        out = {"bands": bands, "standards": sorted(refs.values(), key=lambda s: s.code),
+               "planned_verdicts": skipped_verdicts}
+        if decision is not None:
+            out["planner"] = {"run": decision.run, "skipped": decision.skipped, "cached": decision.cached,
+                              "invalid": decision.invalid, "usage": decision.usage, "model": model_label(step_chat(sup.planner_reasoning))}
+        return out
 
     def fan_out(state):
         sends = [Send("band", {"band": b, "segments": state["segments"],
@@ -166,10 +194,58 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
                 "prompt": res.prompt_version, "standards_count": res.standards_count,
                 "tokens": res.usage.input_tokens + res.usage.output_tokens, "seconds": seconds,
                 "rounds": res.rounds, "reply": res.raw}
+        verdicts = state.get("planned_verdicts", []) + verdicts
+        full_trace: dict = {"reviewers": trace}
+        if supervised:
+            full_trace["stages"] = {"reviewers": growth_codes(verdicts)}
+            full_trace["supervisor"] = {"changes": [], "capped": [], "invalid": []}
+            p = state.get("planner")
+            if p is not None:
+                full_trace["supervisor"]["planner"] = {k: p[k] for k in ("run", "skipped", "cached")}
+                if p["invalid"]:
+                    full_trace["supervisor"]["invalid"].append("planner")
+                prompts["planner"] = sup.planner_prompt
+                if p["usage"] is not None and p["usage"].calls:
+                    usage["planner"] = p["usage"]
+                    calls += p["usage"].calls
+                    if p["model"]:
+                        models["planner"] = p["model"]
+            for name, on, ref in (("critic", sup.critic, sup.critic_prompt),
+                                  ("arbiter", sup.arbiter, sup.arbiter_prompt)):
+                if on:
+                    prompts[name] = ref
         return {"verdicts": verdicts, "observations": observations, "dropped": dropped,
                 "usage": usage, "models": models,
-                "prompt_versions": prompts, "llm_calls": calls, "trace": {"reviewers": trace},
+                "prompt_versions": prompts, "llm_calls": calls, "trace": full_trace,
                 "links": [], "details": {}}
+
+    def run_step(state, name: str, step) -> dict:
+        res: StepResult = step.run(state["verdicts"], state["observations"], state["segments"],
+                                   {s.code: s for s in state["standards"]})
+        trace = {**state["trace"]}
+        before = trace["supervisor"]
+        trace["supervisor"] = {**before, "changes": before["changes"] + res.changes,
+                               "capped": before["capped"] + ([name] if res.capped else []),
+                               "invalid": before["invalid"] + ([name] if res.invalid else [])}
+        trace["stages"] = {**trace["stages"], name: growth_codes(res.verdicts)}
+        out = {"verdicts": res.verdicts, "observations": res.observations, "trace": trace}
+        if res.usage is not None and res.usage.calls:
+            out["usage"] = {**state["usage"], name: res.usage}
+            out["llm_calls"] = state["llm_calls"] + res.usage.calls
+            out["models"] = {**state["models"], **_model_of(step.chat, name)}
+        return out
+
+    def critic(state):
+        if sup is None or not sup.critic:
+            return {}
+        step = Critic(step_chat(sup.critic_reasoning), templates[sup.critic_prompt], sup.critic_max_items)
+        return run_step(state, "critic", step)
+
+    def arbiter(state):
+        if sup is None or not sup.arbiter:
+            return {}
+        step = Arbiter(step_chat(sup.arbiter_reasoning), templates[sup.arbiter_prompt], sup.arbiter_max_clusters)
+        return run_step(state, "arbiter", step)
 
     def root_cause(state):
         if not options.root_cause:
@@ -222,7 +298,7 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
 
     g = StateGraph(ReviewStateV2)
     for name, fn in [("fetch", fetch), ("mc", mc), ("segment", segment_node), ("plan", plan),
-                     ("merge", merge), ("root_cause", root_cause), ("aggregate", aggregate_node),
+                     ("merge", merge), ("critic", critic), ("arbiter", arbiter), ("root_cause", root_cause), ("aggregate", aggregate_node),
                      ("verify", verify_node)]:
         g.add_node(name, _timed(name, fn))
     g.add_node("band", band)  # times itself, per reviewer
@@ -232,7 +308,8 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
     g.add_edge("segment", "plan")
     g.add_conditional_edges("plan", fan_out, ["band", "merge"])
     g.add_edge("band", "merge")
-    for a, b in [("merge", "root_cause"), ("root_cause", "aggregate"), ("aggregate", "verify")]:
+    for a, b in [("merge", "critic"), ("critic", "arbiter"), ("arbiter", "root_cause"),
+                 ("root_cause", "aggregate"), ("aggregate", "verify")]:
         g.add_edge(a, b)
     g.add_edge("verify", END)
     return g.compile()
@@ -243,7 +320,8 @@ def effective_profile(profile: Profile, options: ResolvedOptions) -> Profile:
     return Profile(name=profile.name,
                    reviewers=[replace(r, prompt=options.prompts.get(r.id, r.prompt),
                                       reasoning=options.reasoning.get(r.id, r.reasoning))
-                           for r in profile.reviewers])
+                           for r in profile.reviewers],
+                   supervisor=options.supervisor)
 
 
 class ReviewerV2:

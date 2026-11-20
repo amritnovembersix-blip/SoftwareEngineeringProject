@@ -18,7 +18,7 @@ from agentic.review.v2.schemas import (
     PerStandardOut, ProgressionJudgment, ProgressionOut, SegmentEvidence, StepJudgment, StepOut,
 )
 from agentic.review.v2.scope import BandScope, Progression, group_of, progressions
-from agentic.tuning import ReviewerSpec
+from agentic.tuning import ReviewerSpec, prompt_version
 
 VERDICTS = ("meets", "growth_area", "not_evident")
 SUPPORT_LEVELS = ("approaching", "developing", "beginning")
@@ -72,10 +72,12 @@ class _Run:
 
 @dataclass(frozen=True)
 class _Growth:
-    """A search step judged growth_area: its index in the progression, level and valid evidence."""
+    """A search step judged growth_area: its index in the progression, level, valid evidence and the step's
+    codes that fall short (every code at the step before progression.v5)."""
     step: int
     level: str
     evidence: list[SegmentEvidence]
+    codes: frozenset[str]
 
 
 def _standard_text(s: StandardRef) -> str:
@@ -99,6 +101,8 @@ class BandReviewer:
         self._chat = chat
         self._template = Template(template)
         self._conditions = conditions or {}
+        # progression.v5+: a failed search step names the lines that fall short (short_of)
+        self._lines = spec.prompt.startswith("progression.") and prompt_version(spec.prompt) >= 5
 
     def review(self, segments: list[str], segment_level: Literal["paragraph", "sentence", "answer"],
                assignment: Assignment | None, notable_strengths: bool) -> BandResult:
@@ -137,8 +141,9 @@ class BandReviewer:
 
     def _render(self, listing: str, groups: set[str], segments: list[str],
                 assignment: Assignment | None) -> str:
-        conditions = "\n".join(f"- {g}: {'; '.join(self._conditions[g])}"
-                               for g in sorted(groups) if g in self._conditions)
+        band = "6+" if self.lo >= 6 else "3-5"  # a band key wins over the plain key (R5)
+        found = {g: self._conditions.get(f"{band}:{g}") or self._conditions.get(g) for g in sorted(groups)}
+        conditions = "\n".join(f"- {g}: {'; '.join(items)}" for g, items in found.items() if items)
         return self._template.substitute(
             standards=listing, assignment=_assignment_text(assignment), conditions=conditions or "(none)",
             segments="\n".join(f"[S{i}] {text}" for i, text in enumerate(segments, start=1)))
@@ -402,10 +407,28 @@ class BandReviewer:
         if not evidence:
             run.drop(f"no_valid_evidence:{g}")
             return self._search_close(p, found, run)
-        found.append(_Growth(i, level, evidence))
+        found.append(_Growth(i, level, evidence, self._short_of(p, i, j, run)))
         if i == 0:  # no lower step in the band: below the band
             return self._search_close(p, found, run)
         return True
+
+    def _short_of(self, p: Progression, i: int, j: StepJudgment, run: _Run) -> frozenset[str]:
+        """The codes at step `i` that become growth areas. Before progression.v5, every code at the step. From
+        v5, the valid codes in `short_of`; an unknown code is dropped, and none valid falls back to every code
+        (a bad reply never loses recall)."""
+        step_codes = frozenset(r.code for r in p.steps[i][1])
+        if not self._lines:
+            return step_codes
+        valid = []
+        for code in j.short_of:
+            if code in step_codes:
+                valid.append(code)
+            else:
+                run.drop(f"unknown_line:{code}")
+        if not valid:
+            run.drop(f"no_short_of:{p.group}")
+            return step_codes
+        return frozenset(valid)
 
     def _search_close(self, p: Progression, found: list[_Growth], run: _Run, met_at: int | None = None,
                       met_evidence: list[SegmentEvidence] | None = None,
@@ -422,6 +445,7 @@ class BandReviewer:
         met_evidence = met_evidence or []
         grown = {x.step: x for x in found}
         for i, (_, refs) in enumerate(p.steps):
+            met_line = dict(verdict="meets", working_grade=wg, segments=[])  # v5: a line not in short_of
             if i in grown:
                 kw = dict(verdict="growth_area", support_level=grown[i].level, working_grade=wg,
                           segments=sorted({ev.segment for ev in grown[i].evidence}))
@@ -435,6 +459,9 @@ class BandReviewer:
             else:
                 continue
             for r in refs:
+                if i in grown and r.code not in grown[i].codes:
+                    run.verdicts.append(Verdict(standard_code=r.code, reviewer=self.spec.id, **met_line))
+                    continue
                 run.verdicts.append(Verdict(standard_code=r.code, reviewer=self.spec.id, **kw))
                 if i in grown:  # Ruling T6a: each growth code gets its round's evidence
                     self._observe(r.code, grown[i].evidence, grown[i].level, run)

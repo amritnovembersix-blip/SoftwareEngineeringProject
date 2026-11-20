@@ -747,3 +747,69 @@ def test_progression_v3_carries_the_evidence_bar_and_listed_ids():
     text = load_prompt(PROMPTS, "progression.v3")
     assert "clearly shows" in text and "Absence is not evidence" in text
     assert "listed" in text
+
+
+# ---- R1: progression.v5 names the lines that fall short (short_of) ----
+
+def test_v5_failed_step_flags_only_the_named_lines():
+    chat = FakeChatModel({StepOut: _rounds(
+        [_step("W.2.A", "growth_area", "developing", short_of=["9-10.W.2.A.a"])],
+        [_step("W.2.A", "growth_area", "developing", short_of=["8.W.2.A.a"])],
+        [_step("W.2.A", "growth_area", "approaching", short_of=["7.W.2.A.b"])],
+        [_step("W.2.A", "meets")])})
+    r = _run(_search(chat, prompt="progression.v5"))
+    by = {v.standard_code: v for v in r.verdicts}
+    assert by["7.W.2.A.b"].verdict == "growth_area"
+    a = by["7.W.2.A.a"]
+    assert (a.verdict, a.segments, a.notable_strength, a.working_grade) == ("meets", [], False, 6)
+    assert "7.W.2.A.a" not in {o.standard_code for o in r.observations}
+    assert len(chat.calls) == 4  # a step with any line short is not met: the search goes on down
+
+
+def test_short_of_unknown_codes_are_dropped_and_the_rest_apply():
+    chat = FakeChatModel({StepOut: _rounds(
+        [_step("W.2.A", "growth_area", "developing", short_of=["9-10.W.2.A.a", "7.W.2.A.a"])],
+        [_step("W.2.A", "meets")])})
+    r = _run(_search(chat, prompt="progression.v5"))
+    assert {v.standard_code: v.verdict for v in r.verdicts}["9-10.W.2.A.a"] == "growth_area"
+    assert "unknown_line:7.W.2.A.a" in [d.reason for d in r.dropped]
+
+
+def test_v5_growth_without_short_of_falls_back_to_every_code():
+    chat = FakeChatModel({StepOut: _rounds(
+        [_step("W.2.A", "growth_area", "developing")], [_step("W.2.A", "growth_area", "developing")],
+        [_step("W.2.A", "growth_area", "developing")], [_step("W.2.A", "meets")])})
+    r = _run(_search(chat, prompt="progression.v5"))
+    by = {v.standard_code: v for v in r.verdicts}
+    assert by["7.W.2.A.a"].verdict == by["7.W.2.A.b"].verdict == "growth_area"
+    assert "no_short_of:W.2.A" in [d.reason for d in r.dropped]
+
+
+def test_v3_ignores_short_of():
+    reply = lambda: [_step("W.2.A", "growth_area", "developing", short_of=["7.W.2.A.b"])]
+    chat = FakeChatModel({StepOut: _rounds(reply(), reply(), reply(), [_step("W.2.A", "meets")])})
+    r = _run(_search(chat, prompt="progression.v3"))
+    by = {v.standard_code: v for v in r.verdicts}
+    assert by["7.W.2.A.a"].verdict == "growth_area"
+    assert not [d for d in r.dropped if d.reason.startswith(("no_short_of", "unknown_line"))]
+
+
+# ---- R5: conditions lookup by grade band, then the plain key ----
+
+def test_search_reviewer_shows_its_band_conditions_only():
+    chat = FakeChatModel({StepOut: _rounds([_step("W.2.A", "meets")])})
+    spec = ReviewerSpec(id="6-G-W", grades=(6, "course"), strands=("W",), mode="search", prompt="progression.v3")
+    rev = BandReviewer(spec, 6, 10, BandScope(_src(*PROG), 6, 10, ["W"]), chat, load_prompt(PROMPTS, "progression.v3"),
+                       conditions={"6+:W.2.A": ["x1"], "3-5:W.2.A": ["y1"], "W.2.A": ["z1"]})
+    _run(rev)
+    user = chat.calls[0][2]
+    assert "x1" in user and "y1" not in user and "z1" not in user
+
+
+def test_per_standard_reviewer_falls_back_to_the_plain_key():
+    chat = FakeChatModel({PerStandardOut: lambda _s, _u: PerStandardOut(judgments=[])})
+    spec = ReviewerSpec(id="3-5-L", grades=(3, 5), strands=("L",), mode="per_standard", prompt="per_standard.v1")
+    rev = BandReviewer(spec, 3, 5, BandScope(_src(*PER_STD), 3, 5, ["L"]), chat, load_prompt(PROMPTS, "per_standard.v1"),
+                       conditions={"L.1.A": ["p1"], "6+:L.1.A": ["q1"]})
+    _run(rev)
+    assert "p1" in chat.calls[0][2] and "q1" not in chat.calls[0][2]

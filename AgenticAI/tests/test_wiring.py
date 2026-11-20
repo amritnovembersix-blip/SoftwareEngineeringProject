@@ -253,3 +253,32 @@ def test_build_chat_uses_the_global_reasoning_level():
     s = Settings(llm_provider="gemini", llm_model="m", llm_api_key="k", llm_reasoning="medium")
     assert wiring.build_chat(s).reasoning == "medium"
     assert wiring.build_chat(s.model_copy(update={"llm_reasoning": "default"})).reasoning == "default"
+
+
+def test_v2_chats_add_the_supervisor_steps_levels(monkeypatch):
+    """Review supervisor: critic and arbiter run on the default model at high; planner at low."""
+    from agentic.config import PACKAGE_ROOT
+    from agentic.llm.base import chat_key
+    from agentic.tuning import load_profile
+
+    monkeypatch.setattr(wiring, "build_chat", lambda st: object())
+    s = Settings(fake_llm=False, llm_provider="gemini", llm_model="base", llm_api_key="k", llm_reasoning="low")
+    from dataclasses import replace
+    sup = load_profile(PACKAGE_ROOT / "config", "supervised")
+    low_only = replace(sup, reviewers=[r for r in sup.reviewers if r.reasoning == "low"])  # no reviewer at high
+    assert chat_key(None, "high") in wiring.build_v2_chats(s, low_only)  # the critic and arbiter need it
+    only_planner = replace(low_only, supervisor=replace(sup.supervisor, critic=False, arbiter=False))
+    assert wiring.build_v2_chats(s, only_planner) == {}  # planner at low = the default chat
+
+
+def test_v2_reviewer_loads_the_step_prompts_only_when_on(monkeypatch):
+    from agentic.review.v2.options import ReviewOptions
+    seen = {}
+    monkeypatch.setattr(wiring, "build_v2_graph", lambda *a, **k: seen.setdefault("templates", a[5]))
+    s = Settings(fake_llm=True, review_pipeline="v2", bands_profile="supervised")
+    on = ReviewOptions().resolve(s, {"root_cause_enabled": False})
+    wiring.build_v2_reviewer(s, options=on)
+    assert {"planner.v1", "critic.v1", "arbiter.v1"} <= set(seen.pop("templates"))
+    off = ReviewOptions(critic=False).resolve(s, {"root_cause_enabled": False})
+    wiring.build_v2_reviewer(s, options=off)
+    assert "critic.v1" not in seen["templates"] and "arbiter.v1" in seen["templates"]

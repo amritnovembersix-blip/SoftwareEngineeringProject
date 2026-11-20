@@ -1,12 +1,12 @@
 """Per-run options for the v2 pipeline, resolved against Settings and the teacher/admin settings."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from pydantic import BaseModel, Field
 
 from agentic.config import Settings
 from agentic.llm.base import check_reasoning
 from agentic.settings.base import load_defs, validate
-from agentic.tuning import check_mode_prompt, load_profile
+from agentic.tuning import SupervisorSpec, check_mode_prompt, load_profile
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class ResolvedOptions:
     verify: bool
     settings: dict = field(default_factory=dict)  # effective teacher/admin settings
     reasoning: dict[str, str] = field(default_factory=dict)  # reviewer id -> default|low|medium|high
+    supervisor: SupervisorSpec | None = None  # the profile's, with this run's switches applied
 
 
 class ReviewOptions(BaseModel):
@@ -30,10 +31,20 @@ class ReviewOptions(BaseModel):
     root_cause: bool | None = None
     verify: bool | None = None
     settings_override: dict = Field(default_factory=dict)
+    planner: bool | None = None  # supervised profile: switch a step off (or on) for this run
+    critic: bool | None = None
+    arbiter: bool | None = None
 
     def resolve(self, s: Settings, defaults: dict) -> ResolvedOptions:
         profile = self.profile or s.bands_profile
-        reviewers = load_profile(s.config_dir, profile).reviewers
+        loaded = load_profile(s.config_dir, profile)
+        reviewers = loaded.reviewers
+        switches = {k: v for k, v in (("planner", self.planner), ("critic", self.critic),
+                                      ("arbiter", self.arbiter)) if v is not None}
+        if switches and loaded.supervisor is None:
+            raise ValueError(f"profile {profile!r} has no supervisor: --no-planner, --no-critic and --no-arbiter "
+                             "need the supervised profile")
+        supervisor = replace(loaded.supervisor, **switches) if loaded.supervisor else None
         prompts = {r.id: r.prompt for r in reviewers}
         for reviewer, version in self.prompt_versions.items():
             if reviewer not in prompts:
@@ -57,5 +68,5 @@ class ReviewOptions(BaseModel):
             pipeline=self.pipeline or s.review_pipeline, profile=profile, prompts=prompts, reasoning=levels,
             root_cause=self.root_cause if self.root_cause is not None else bool(effective.get("root_cause_enabled")),
             verify=self.verify if self.verify is not None else s.verify,
-            settings=effective,
+            settings=effective, supervisor=supervisor,
         )
