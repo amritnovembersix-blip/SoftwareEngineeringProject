@@ -17,7 +17,7 @@ from agentic.review.strategies import _reason_problem
 from agentic.review.v2.schemas import (
     PerStandardOut, ProgressionJudgment, ProgressionOut, SegmentEvidence, StepJudgment, StepOut,
 )
-from agentic.review.v2.scope import BandScope, Progression, group_of, progressions
+from agentic.review.v2.scope import BandScope, Progression, band_conditions, group_of, progressions
 from agentic.tuning import ReviewerSpec, prompt_version
 
 VERDICTS = ("meets", "growth_area", "not_evident")
@@ -141,9 +141,8 @@ class BandReviewer:
 
     def _render(self, listing: str, groups: set[str], segments: list[str],
                 assignment: Assignment | None) -> str:
-        band = "6+" if self.lo >= 6 else "3-5"  # a band key wins over the plain key (R5)
-        found = {g: self._conditions.get(f"{band}:{g}") or self._conditions.get(g) for g in sorted(groups)}
-        conditions = "\n".join(f"- {g}: {'; '.join(items)}" for g, items in found.items() if items)
+        found = {g: band_conditions(self._conditions, self.lo, g) for g in sorted(groups)}  # band key first (R5)
+        conditions = "\n".join(f"- {g}: {'; '.join(hit[1])}" for g, hit in found.items() if hit)
         return self._template.substitute(
             standards=listing, assignment=_assignment_text(assignment), conditions=conditions or "(none)",
             segments="\n".join(f"[S{i}] {text}" for i, text in enumerate(segments, start=1)))

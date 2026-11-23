@@ -2,5 +2,5 @@ AgenticAI/ is synced from the agentic lab repo; edit it there, not here.
 
 Lab repo:   GrouchoLarks/csci-5030-project
 Lab folder: agentic/  (paths in its docs say agentic/; here it is AgenticAI/)
-Commit:     e8c4e91 (fix/compose-test-no-skip)
-Exported:   2026-11-20 19:12 UTC
+Commit:     aea5f34 (fix/root-cause-band-conditions)
+Exported:   2026-11-23 01:00 UTC
