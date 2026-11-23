@@ -65,6 +65,17 @@ use `pytestmark = pytest.mark.real_auth` and send real tokens (`tests/test_acces
 No percentages or scores: SASS doesn't grade. `needs_attention` means Developing or Beginning on at
 least 2 of the last 3 pieces of work.
 
+## Dashboard and notifications
+
+| Endpoint | What it returns |
+|---|---|
+| `GET /dashboard` | `{user, totals, classrooms}`. One card per class the user can see: `student_count`, `students_needing_attention`, `pending_pairs`, `failed_reviews`, `last_reviewed_at`, `analysis_as_of`. `totals` adds them up for the top of the page |
+| `GET /notifications` | What needs attention now, most urgent first: `failed_reviews`, then `needs_attention`, then `pending_pairs`, one per class that has something to report. Each has a stable `id` (e.g. `needs_attention:classroom_2.00-control`), `kind`, `classroom_id`, `classroom_name`, `count`, a ready-to-show `message`, and `student_ids` for needs_attention |
+
+Both are computed on each request from the same numbers, so the bell and the cards always agree.
+A teacher sees only their own classes. There is no read/unread state on the server yet: the page
+can remember the `id`s it has shown.
+
 ## Findings, strengths and teacher answers
 
 | Endpoint | What it does |
