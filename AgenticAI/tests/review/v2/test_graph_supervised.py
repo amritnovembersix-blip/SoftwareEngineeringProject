@@ -135,3 +135,50 @@ def test_a_failed_planner_is_flagged_invalid_in_the_trace(tmp_path, monkeypatch)
     res = _review(_settings(tmp_path), critic=False, arbiter=False)
     assert res.trace["supervisor"]["invalid"] == ["planner"]
     assert res.trace["supervisor"]["planner"]["skipped"] == {}
+
+
+def _paragraph_review(tmp_path, monkeypatch, exclude):
+    """A supervised review of the fixture essay as a paragraph, with `exclude` as its paragraph exclusions."""
+    import shutil
+    from agentic.config import PACKAGE_ROOT
+    cfg = tmp_path / "config"
+    shutil.copytree(PACKAGE_ROOT / "config", cfg)
+    bands = (cfg / "bands.toml").read_text(encoding="utf-8")
+    line = "exclude_by_type = { paragraph = [" + ", ".join(f'"{k}"' for k in exclude) + "] }"
+    bands, n = re.subn(r"^exclude_by_type = .*$", line, bands, count=1, flags=re.M)  # supervised's (Task 2)
+    assert n == 1
+    (cfg / "bands.toml").write_text(bands, encoding="utf-8")
+    real = wiring.build_lms
+
+    class _AsParagraph:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+        def get_assignment(self, course_id, assignment_id):
+            return self._inner.get_assignment(course_id, assignment_id).model_copy(
+                update={"submission_type": "paragraph"})
+
+    monkeypatch.setattr(wiring, "build_lms", lambda s, v=None: _AsParagraph(real(s, v)))
+    chat = _chat(monkeypatch)
+    s = _settings(tmp_path).model_copy(update={"config_dir": cfg})
+    return _review(s, critic=False, arbiter=False), chat
+
+
+def test_excluded_standards_are_not_evident_by_scope_and_never_sent(tmp_path, monkeypatch):
+    from agentic.review.v2.scope import excluded
+    res, chat = _paragraph_review(tmp_path, monkeypatch, ["6+:W.3.A", "3-5:W.1.C"])
+    scope = [v for v in res.verdicts if v.reviewer == "scope"]
+    assert scope and all(v.verdict == "not_evident" for v in scope)
+    assert all(excluded(v.standard_code, ["6+:W.3.A", "3-5:W.1.C"]) for v in scope)
+    sent = " ".join(u for _, _, u in chat.calls)
+    assert not any(f"- {v.standard_code} " in sent for v in scope)
+    assert {s.code for s in res.standards} >= {v.standard_code for v in scope}
+
+
+def test_reviewer_with_every_standard_excluded_does_not_run(tmp_path, monkeypatch):
+    res, _ = _paragraph_review(tmp_path, monkeypatch, ["6+:W.1.A", "6+:W.2.A", "6+:W.3.A"])
+    assert "6+-writing" not in res.usage
+    assert any(v.reviewer == "scope" for v in res.verdicts)

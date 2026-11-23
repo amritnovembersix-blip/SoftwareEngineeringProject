@@ -123,7 +123,7 @@ def test_persist_off_reviews_without_writer(env):
 def test_sweep_while_one_is_running_returns_it(env):
     client, writer, _ = env
     runs = client.app.state.runs
-    running, _ = runs.create("manual", 3, ("classroom_1.01", None))
+    running, _ = runs.create("manual", 3, ("classroom_1.01", None, None))
     runs.update(running.run_id, status="running")
     r = client.post("/sweeps", json={"course_id": "classroom_1.01"}, headers=AUTH).json()
     assert r == {"run_id": running.run_id, "duplicate": True, "ignored": False, "reason": None}
@@ -428,3 +428,43 @@ def wiring_module():
     from agentic import wiring
 
     return wiring
+
+
+def test_sweep_one_student_reviews_only_them(env):
+    client, writer, _ = env
+    run = _run(client, {"course_id": "classroom_1.01", "user_id": STUDENTS[1]})
+    assert (run["submission_count"], run["completed_count"]) == (1, 1)
+    assert [r.submission_ref.user_id for r, _ in writer.saved] == [STUDENTS[1]]
+
+
+def test_sweep_one_student_one_assignment(env):
+    client, writer, _ = env
+    run = _run(client, {"course_id": "classroom_1.01", "assignment_id": "asg-classroom_1.01-essay1",
+                        "user_id": STUDENTS[0]})
+    assert run["completed_count"] == 1 and [r.submission_ref.user_id for r, _ in writer.saved] == [STUDENTS[0]]
+
+
+def test_student_sweeps_are_their_own_scope(env):
+    client, _, _ = env
+    a = _run(client, {"course_id": "classroom_1.01", "user_id": STUDENTS[0]})
+    b = _run(client, {"course_id": "classroom_1.01", "user_id": STUDENTS[1]})
+    assert a["run_id"] != b["run_id"] and b["completed_count"] == 1
+
+
+def test_sweep_unknown_student_is_422_and_starts_nothing(env):
+    client, writer, _ = env
+    r = client.post("/sweeps", json={"course_id": "classroom_1.01", "user_id": "z" * 64}, headers=AUTH)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_student"
+    assert writer.saved == []
+
+
+def test_student_without_course_is_422(env):
+    client, _, _ = env
+    r = client.post("/sweeps", json={"user_id": STUDENTS[0]}, headers=AUTH)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "validation_failed"
+
+
+def test_blank_student_is_422(env):
+    client, _, _ = env
+    r = client.post("/sweeps", json={"course_id": "classroom_1.01", "user_id": "  "}, headers=AUTH)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "validation_failed"

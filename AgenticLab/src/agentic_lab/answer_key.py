@@ -44,10 +44,19 @@ class TrajectoryRow(_Strict):
     level: int
 
 
+class AnyOf(_Strict):
+    """One planted gap that any of `codes` describes (phase 3): a family left with no code once Revise and Edit is
+    dropped from a paragraph or short answer gets its highest grade 3-5 codes as one slot."""
+    family: str
+    codes: list[str]
+    level: int
+
+
 class ExpectedRow(_Strict):
     student_hash: str
     submission_id: str
     weaknesses: list[StandardLevel]
+    any_of: list[AnyOf] = []
 
 
 class FidelityRow(_Strict):

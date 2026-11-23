@@ -84,6 +84,21 @@ def _standard_text(s: StandardRef) -> str:
     return f"{s.description} {s.sub_expectation}" if s.sub_expectation else s.description
 
 
+def _full_text(s: StandardRef) -> str:
+    """v6: the concept, then the MLS description and sub-expectation (phase 3, R2)."""
+    return f"Concept: {s.concept} | {_standard_text(s)}" if s.concept else _standard_text(s)
+
+
+_WORK = {"essay": "This is the student's final revised version.",
+         "paragraph": "This is a single draft, not a revised piece.",
+         "short_answer": "This is a single draft, not a revised piece."}
+
+
+def _work_text(a: Assignment | None) -> str:
+    """The `$work` line of v6 prompts; older templates have no `$work` and never show it."""
+    return "" if a is None else _WORK.get(a.submission_type, "")
+
+
 def _assignment_text(a: Assignment | None) -> str:
     if a is None or not a.description:
         return "(none)"
@@ -103,6 +118,8 @@ class BandReviewer:
         self._conditions = conditions or {}
         # progression.v5+: a failed search step names the lines that fall short (short_of)
         self._lines = spec.prompt.startswith("progression.") and prompt_version(spec.prompt) >= 5
+        # v6+: each standard line shows its concept and full text, and the prompt says what kind of work it is
+        self._full = prompt_version(spec.prompt) >= 6
 
     def review(self, segments: list[str], segment_level: Literal["paragraph", "sentence", "answer"],
                assignment: Assignment | None, notable_strengths: bool) -> BandResult:
@@ -139,12 +156,20 @@ class BandReviewer:
             return out
         raise AssertionError("unreachable")
 
+    def _line(self, s: StandardRef) -> str:
+        return _full_text(s) if self._full else _standard_text(s)
+
+    def _step_line(self, r: StandardRef) -> str:
+        """A progression step line: v6 shows the full text; earlier versions the sub-expectation alone."""
+        return _full_text(r) if self._full else (r.sub_expectation or r.description)
+
     def _render(self, listing: str, groups: set[str], segments: list[str],
                 assignment: Assignment | None) -> str:
         found = {g: band_conditions(self._conditions, self.lo, g) for g in sorted(groups)}  # band key first (R5)
         conditions = "\n".join(f"- {g}: {'; '.join(hit[1])}" for g, hit in found.items() if hit)
         return self._template.substitute(
-            standards=listing, assignment=_assignment_text(assignment), conditions=conditions or "(none)",
+            standards=listing, assignment=_assignment_text(assignment), work=_work_text(assignment),
+            conditions=conditions or "(none)",
             segments="\n".join(f"[S{i}] {text}" for i, text in enumerate(segments, start=1)))
 
     # ---- shared guards ----
@@ -253,7 +278,7 @@ class BandReviewer:
     def _per_standard(self, standards: list[StandardRef], segments: list[str],
                       assignment: Assignment | None, run: _Run) -> dict:
         def render(refs: list[StandardRef]) -> str:
-            listing = "\n".join(f"- {s.code} | {_standard_text(s)}" for s in refs)
+            listing = "\n".join(f"- {s.code} | {self._line(s)}" for s in refs)
             return self._render(listing, {group_of(s.code) for s in refs}, segments, assignment)
 
         def judge(judgments, allowed: set[str], seen: set[str]) -> None:
@@ -294,7 +319,7 @@ class BandReviewer:
             # every code in a merged step shows the step's grade: that is the working grade to name
             listing = "\n\n".join(
                 f"## {p.group}\n" + "\n".join(
-                    f"- {r.code} (grade {grade}) | {r.sub_expectation or r.description}"
+                    f"- {r.code} (grade {grade}) | {self._step_line(r)}"
                     for grade, refs in p.steps for r in refs)
                 for p in progs)
             return self._render(listing, {p.group for p in progs}, segments, assignment)
@@ -358,7 +383,7 @@ class BandReviewer:
         def render(groups: list[str]) -> str:
             # every code in a merged step shows the step's grade
             listing = "\n\n".join(
-                f"## {g}\n" + "\n".join(f"- {r.code} (grade {grade}) | {r.sub_expectation or r.description}"
+                f"## {g}\n" + "\n".join(f"- {r.code} (grade {grade}) | {self._step_line(r)}"
                                         for r in refs)
                 for g in groups for grade, refs in [by_group[g].steps[at[g]]])
             return self._render(listing, set(groups), segments, assignment)

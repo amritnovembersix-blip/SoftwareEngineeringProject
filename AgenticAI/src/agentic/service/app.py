@@ -80,6 +80,7 @@ Id = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]  # b
 class SweepRequest(BaseModel):
     course_id: Id | None = None
     assignment_id: Id | None = None  # requires course_id
+    user_id: Id | None = None  # one student's LMS user id; requires course_id
 
 
 class TrendAnalysisRequest(BaseModel):
@@ -441,9 +442,10 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
         been reviewed. Listing happens now (an unknown course is a 422); reviewing in the background.
         A sweep of the same scope that is still queued or running is returned with duplicate=True."""
         req = req or SweepRequest()
-        if req.assignment_id is not None and req.course_id is None:
-            raise ApiError(422, "validation_failed", "assignment_id requires course_id",
-                           {"fields": ["body.course_id"]})
+        for name in ("assignment_id", "user_id"):
+            if getattr(req, name) is not None and req.course_id is None:
+                raise ApiError(422, "validation_failed", f"{name} requires course_id",
+                               {"fields": ["body.course_id"]})
         refs, skips, unreadable = [], [], []
         for course_id in [req.course_id] if req.course_id is not None else list_courses(s):
             try:
@@ -470,6 +472,10 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
                     raise ApiError(502, "lms_data_error", f"the LMS returned unreadable data for {course_id}") from None
                 unreadable.append(course_id)
                 continue
+            if req.user_id is not None:
+                submissions = [sub for sub in submissions if sub.user_id == req.user_id]
+                if not submissions:
+                    raise ApiError(422, "unknown_student", "the course has no such student") from None
             mc = {}  # assignment id -> is multiple choice (skipped under the MVP pipeline)
             for sub in submissions:
                 if skip_mc and sub.assignment_id not in mc:
@@ -488,7 +494,7 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
                     refs.append(SubmissionRef(course_id=course_id, assignment_id=sub.assignment_id,
                                               user_id=sub.user_id, submission_id=sub.id,
                                               attempt=sub.attempt, submitted_at=sub.submitted_at))
-        run, duplicate = runs.create("manual", len(refs) + len(skips), (req.course_id, req.assignment_id))
+        run, duplicate = runs.create("manual", len(refs) + len(skips), (req.course_id, req.assignment_id, req.user_id))
         if not duplicate:
             if unreadable:
                 runs.update(run.run_id, unreadable_courses=unreadable)

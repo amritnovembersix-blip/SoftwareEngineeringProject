@@ -18,7 +18,7 @@ class VerdictRow:
     notable_strength: bool
     confidence: float | None
     finding_condition: str | None
-    overruled: bool  # the finding has a teacher response of disagree or dismiss
+    overruled: bool  # the teacher's latest response to the finding is disagree or dismiss
     implied: bool = False  # a meets derived from a higher met grade: nothing was observed at this grade
 
 

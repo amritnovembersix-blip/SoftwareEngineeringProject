@@ -23,7 +23,7 @@ from agentic.dataset import read_rows
 from agentic.llm.base import ChatModel
 from agentic_lab.answer_key import (
     ExpectedRow, FidelityRow, StandardLevel, StudentKey, TrajectoryRow, answer_key_path)
-from agentic_lab.synth.evidence import choose_answers, concept_picks, evidenced, mc_fidelity
+from agentic_lab.synth.evidence import choose_answers, concept_picks, evidenced, key_codes, mc_fidelity
 from agentic_lab.synth.families import SkillFamily, grade_key, load_families
 
 ATTEMPTS = 3
@@ -411,6 +411,42 @@ class _Plan:
     tasks: list[_Task | str]  # a str is a submission id already in the file (skipped)
 
 
+def _expected_text(assignment: AssignmentFile, strand: str, rows: list[SubmissionRow],
+                   trajectory: Mapping[tuple[str, int], dict[str, int]],
+                   families: Mapping[str, SkillFamily]) -> str:
+    """`expected/<file id>.jsonl` for these submission rows: what the key plants (`key_codes`)."""
+    out = []
+    for r in rows:
+        exact, slots = key_codes(assignment, strand, trajectory.get((r.student_hash, assignment.week), {}), families)
+        out.append(ExpectedRow(student_hash=r.student_hash, submission_id=r.submission_id,
+                               weaknesses=[StandardLevel(standard=c, level=lv) for c, lv in sorted(exact.items())],
+                               any_of=slots).model_dump_json() + "\n")
+    return "".join(out)
+
+
+def rebuild_key(data_dir: Path, version: str) -> int:
+    """Rewrite `answer_key/expected/` from the plan for every submission already written; nothing else changes
+    and no model is called. Returns the rows written."""
+    data_dir = Path(data_dir)
+    cd = CourseDir(data_dir, version)
+    curriculum = cd.curriculum()
+    families = load_families(data_dir / "skill_families.json")
+    key_dir = answer_key_path(data_dir, version)
+    trajectory: dict[tuple[str, int], dict[str, int]] = {}
+    for t in read_rows(key_dir / "trajectory.jsonl", TrajectoryRow):
+        trajectory.setdefault((t.student_hash, t.week), {})[t.standard] = t.level
+    strands = {m.id: m.strand for m in curriculum.modules}
+    written = 0
+    for assignment in cd.assignments():
+        rows = cd.submissions(assignment.id)
+        if not rows:
+            continue
+        _replace(key_dir / "expected" / f"{assignment.id}.jsonl",
+                 _expected_text(assignment, strands[assignment.module], rows, trajectory, families))
+        written += len(rows)
+    return written
+
+
 def generate_course(chat: ChatModel | None, data_dir: Path, version: str, seed: int,
                     through_week: int | None = None, students: int | None = None, overwrite: bool = False,
                     progress: Callable[[str], None] | None = None,
@@ -552,11 +588,8 @@ def generate_course(chat: ChatModel | None, data_dir: Path, version: str, seed: 
             if failure:
                 fidelity[sub_id] = failure
         save_fidelity()
-        _replace(key_dir / "expected" / f"{assignment.id}.jsonl", "".join(
-            ExpectedRow(student_hash=r.student_hash, submission_id=r.submission_id,
-                        weaknesses=[StandardLevel(standard=c, level=lv) for c, lv in sorted(evidenced(
-                            assignment, p.strand, trajectory.get((r.student_hash, assignment.week), {})).items())]
-                        ).model_dump_json() + "\n" for r in rows))
+        _replace(key_dir / "expected" / f"{assignment.id}.jsonl",
+                 _expected_text(assignment, p.strand, rows, trajectory, families))
 
     report = GenerateCourseReport()
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="generate-course") as pool:

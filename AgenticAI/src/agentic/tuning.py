@@ -46,6 +46,8 @@ class Profile:
     reviewers: list[ReviewerSpec] = field(default_factory=list)
     supervisor: SupervisorSpec | None = None
     conditions: str = "conditions"  # the conditions file under agentic/config, without .toml
+    # submission type -> concept keys its reviewers never judge (phase 3: paragraphs skip Revise and Edit)
+    exclude_by_type: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 _STRANDS = {"L", "W", "R", "RL", "RI"}
@@ -106,7 +108,25 @@ def load_profile(config_dir: Path, name: str) -> Profile:
         raise ValueError(f"{where}: conditions must be \"conditions\" or \"conditions.vN\", got {conditions!r}")
     return Profile(name=name, reviewers=[_reviewer(where, r) for r in profiles[name].get("reviewers", [])],
                    supervisor=None if sup is None else _supervisor(f"{where}.supervisor", sup),
-                   conditions=conditions)
+                   conditions=conditions,
+                   exclude_by_type=_exclude_by_type(where, profiles[name].get("exclude_by_type", {})))
+
+
+_TYPES = ("essay", "paragraph", "short_answer", "multiple_choice")
+
+
+def _exclude_by_type(where: str, d: dict) -> dict[str, tuple[str, ...]]:
+    out: dict[str, tuple[str, ...]] = {}
+    for kind, keys in d.items():
+        if kind not in _TYPES:
+            raise ValueError(f"{where}: exclude_by_type has unknown type {kind!r}; choose from {list(_TYPES)}")
+        if not (isinstance(keys, list) and all(isinstance(k, str) for k in keys)):
+            raise ValueError(f"{where}: exclude_by_type.{kind} must be a list of concept keys")
+        bad = [k for k in keys if not re.fullmatch(r"((3-5|6\+):)?[A-Z]+\.\d+\.[A-Z]", k)]
+        if bad:
+            raise ValueError(f"{where}: exclude_by_type.{kind} has bad keys {bad}; use \"W.3.A\" or \"6+:W.3.A\"")
+        out[kind] = tuple(keys)
+    return out
 
 
 def _supervisor(where: str, d: dict) -> SupervisorSpec:
@@ -205,6 +225,8 @@ def tuning_hash(profile: Profile, conditions: dict[str, list[str]], prompt_texts
         "conditions": conditions,
         "prompts": prompt_texts,
     }
+    if profile.exclude_by_type:  # only set when used: earlier hashes stay valid
+        canon["profile"]["exclude_by_type"] = {k: list(v) for k, v in sorted(profile.exclude_by_type.items())}
     if profile.supervisor is not None:  # only a supervised profile adds it: earlier hashes stay valid
         canon["profile"]["supervisor"] = asdict(profile.supervisor)
     return hashlib.sha256(json.dumps(canon, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()

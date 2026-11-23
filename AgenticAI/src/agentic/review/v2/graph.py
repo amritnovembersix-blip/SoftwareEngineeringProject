@@ -27,7 +27,7 @@ from agentic.review.v2.bands import BandReviewer
 from agentic.review.v2.mc import mc_lookup
 from agentic.review.v2.options import ResolvedOptions
 from agentic.review.v2.root_cause import RootCauseStep, needs_root_cause
-from agentic.review.v2.scope import BandScope
+from agentic.review.v2.scope import BandScope, excluded
 from agentic.review.v2.segment import segment
 from agentic.review.v2.supervisor import Arbiter, Critic, Planner, StepResult
 from agentic.review.v2.state import ReviewStateV2
@@ -141,9 +141,16 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
             planner = Planner(step_chat(sup.planner_reasoning), templates[sup.planner_prompt], tuning_hash)
             decision = planner.plan(state["assignment"], candidates)
         bands, refs, skipped_verdicts = [], {}, []
+        drop = profile.exclude_by_type.get(state["assignment"].submission_type, ())
         for spec, lo, hi in candidates:
             mine = BandScope(standards, lo, hi, _strands(spec.strands, reading)).standards()
             refs.update((s.code, s) for s in mine)
+            if drop:  # concepts this kind of work can't show: never sent, recorded as not evident (phase 3)
+                skipped_verdicts += [Verdict(standard_code=s.code, verdict="not_evident", reviewer="scope")
+                                     for s in mine if excluded(s.code, drop)]
+                mine = [s for s in mine if not excluded(s.code, drop)]
+                if not mine:
+                    continue
             if decision is not None and spec.id in decision.skipped:
                 skipped_verdicts += [Verdict(standard_code=s.code, verdict="not_evident", reviewer="planner")
                                      for s in mine]
@@ -317,10 +324,11 @@ def build_v2_graph(lms: LMSClient, standards: StandardsSource, chat: ChatModel,
 
 def effective_profile(profile: Profile, options: ResolvedOptions) -> Profile:
     """The profile with each reviewer's prompt and reasoning level as resolved (run overrides applied)."""
-    return Profile(name=profile.name,
+    # replace(), not a new Profile: every other field (conditions, exclude_by_type) carries over
+    return replace(profile,
                    reviewers=[replace(r, prompt=options.prompts.get(r.id, r.prompt),
                                       reasoning=options.reasoning.get(r.id, r.reasoning))
-                           for r in profile.reviewers],
+                              for r in profile.reviewers],
                    supervisor=options.supervisor)
 
 

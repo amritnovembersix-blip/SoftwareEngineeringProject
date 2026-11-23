@@ -39,6 +39,14 @@ def conditions_for(conditions: dict[str, list[str]], code: str) -> tuple[str, li
     return band_conditions(conditions, int(code.split(".")[0].split("-")[0]), group_of(code))
 
 
+def excluded(code: str, keys) -> bool:
+    """True when `keys` (a profile's `exclude_by_type` list) names the code's concept: its band key (`6+:W.3.A`,
+    `3-5:W.1.C`) or its plain group (`W.1.C`). Same band rule as `conditions_for`."""
+    band = "6+" if int(code.split(".")[0].split("-")[0]) >= 6 else "3-5"
+    group = group_of(code)
+    return f"{band}:{group}" in keys or group in keys
+
+
 def band_conditions(conditions: dict[str, list[str]], grade: int, group: str) -> tuple[str, list[str]] | None:
     """`conditions_for` by grade and group, for callers that hold a group rather than a code."""
     band = "6+" if grade >= 6 else "3-5"

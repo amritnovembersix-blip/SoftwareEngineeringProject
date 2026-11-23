@@ -30,8 +30,9 @@ JOIN assignment a ON a.id = s.assignment_id
 JOIN standard sd ON sd.id = v.standard_id
 LEFT JOIN LATERAL (
   SELECT f.condition,
-         EXISTS (SELECT 1 FROM teacher_response t
-                 WHERE t.finding_id = f.id AND t.stance IN ('disagree', 'dismiss')) AS overruled
+         -- the teacher's latest answer counts: disagree or dismiss overrules, a later agree restores
+         (SELECT t.stance IN ('disagree', 'dismiss') FROM teacher_response t
+          WHERE t.finding_id = f.id ORDER BY t.responded_at DESC, t.id DESC LIMIT 1) AS overruled
   FROM finding f JOIN finding_standard fs ON fs.finding_id = f.id AND fs.standard_id = v.standard_id
   WHERE f.submission_id = s.id
   ORDER BY f.id LIMIT 1) f ON true

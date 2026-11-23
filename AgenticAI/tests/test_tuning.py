@@ -397,7 +397,8 @@ def test_supervised_profile_is_the_reviewer_fixes_profile():
     graded = {r.id: r for r in load_profile(CONFIG, "graded").reviewers}
     for r in sup.reviewers:  # graded's layout and modes; only the prompts change
         assert (r.grades, r.strands, r.mode) == (graded[r.id].grades, graded[r.id].strands, graded[r.id].mode), r.id
-    assert {r.prompt for r in sup.reviewers} == {"per_standard.v5", "progression.v5"}
+    assert {r.prompt for r in sup.reviewers} == {"per_standard.v6", "progression.v6"}
+    assert sup.exclude_by_type == {"paragraph": ("6+:W.3.A", "3-5:W.1.C"), "short_answer": ("6+:W.3.A", "3-5:W.1.C")}
     assert sup.conditions == "conditions.v3"
     assert sup.supervisor == SupervisorSpec(True, True, True, "planner.v1", "critic.v1", "arbiter.v1",
                                             "low", "high", "high", 60, 15)
@@ -498,3 +499,43 @@ def test_conditions_band_key_must_be_3_5_or_6_plus(tmp_path, key):
     (tmp_path / "c.toml").write_text(f'"{key}" = ["a", "b", "c"]\n', encoding="utf-8")
     with pytest.raises(ValueError, match=f"c.toml {key!r}"):
         load_conditions(tmp_path, "c")
+
+
+_BASE = ('[profiles.p]\n[[profiles.p.reviewers]]\nid = "r"\ngrades = [3, 3]\nstrands = ["L"]\n'
+         'mode = "per_standard"\nprompt = "per_standard.v1"\n')
+
+
+def test_exclude_by_type_loads_and_validates(tmp_path):
+    (tmp_path / "bands.toml").write_text(_BASE + '[profiles.p.exclude_by_type]\nparagraph = ["6+:W.3.A"]\n',
+                                         encoding="utf-8")
+    assert load_profile(tmp_path, "p").exclude_by_type == {"paragraph": ("6+:W.3.A",)}
+    for bad in ('poem = ["W.3.A"]', 'paragraph = ["7:W.3.A"]', 'paragraph = "W.3.A"'):
+        (tmp_path / "bands.toml").write_text(_BASE + f"[profiles.p.exclude_by_type]\n{bad}\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="exclude_by_type"):
+            load_profile(tmp_path, "p")
+
+
+def test_exclude_by_type_enters_the_hash_only_when_set():
+    from dataclasses import replace
+    p = load_profile(CONFIG, "graded")
+    c = load_conditions(CONFIG)
+    assert p.exclude_by_type == {}
+    assert tuning_hash(p, c, {}) != tuning_hash(replace(p, exclude_by_type={"paragraph": ("6+:W.3.A",)}), c, {})
+
+
+def test_effective_profile_keeps_conditions_and_exclusions():
+    """It rebuilt the profile field by field and dropped `conditions`, so supervised ran on conditions.toml."""
+    from agentic.config import Settings
+    from agentic.review.v2.graph import effective_profile
+    from agentic.wiring import resolve_options
+    sup = load_profile(CONFIG, "supervised")
+    eff = effective_profile(sup, resolve_options(Settings(bands_profile="supervised", review_pipeline="v2")))
+    assert eff.conditions == sup.conditions == "conditions.v3"
+    assert eff.exclude_by_type == sup.exclude_by_type
+
+
+def test_v6_prompts_are_v5_plus_a_work_line():
+    for name in ("per_standard", "progression"):
+        v5 = load_prompt(PROMPTS, f"{name}.v5").splitlines()
+        v6 = load_prompt(PROMPTS, f"{name}.v6").splitlines()
+        assert [x for x in v6 if x != "$work"] == v5 and v6.count("$work") == 1

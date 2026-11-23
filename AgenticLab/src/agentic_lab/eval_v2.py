@@ -18,7 +18,7 @@ family with no grade 6+ verdicts, only not_evident ones, or an incomplete search
 BELOW counts as 5 for the within-1 arithmetic and equals only BELOW for exact.
 """
 from collections import Counter, defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from pathlib import Path
 
@@ -33,9 +33,9 @@ from agentic.models import Dropped, ReviewResult
 from agentic.review.v2.options import ReviewOptions
 from agentic.review.v2.run import review_one
 from agentic.review.v2.scope import group_of
-from agentic.review.v2.supervisor import concept_line, grade_of
+from agentic.review.v2.supervisor import grade_of
 from agentic.standards.strand_filter import strand_of
-from agentic_lab.answer_key import ExpectedRow, FidelityRow, StudentKey, TrajectoryRow, answer_key_path
+from agentic_lab.answer_key import AnyOf, ExpectedRow, FidelityRow, StudentKey, TrajectoryRow, answer_key_path
 from agentic_lab.eval import Counts, concept_of, score
 from agentic_lab.synth.families import SkillFamily, grade_key, load_families
 
@@ -214,15 +214,35 @@ def _offsets_text(c: "ChainFlags") -> str:
     return f" ({', '.join(f'{k}: {c.offsets[k]}' for k in order if k in c.offsets)})" if c.offsets else ""
 
 
-def chain_offset(code: str, planted) -> int | None:
-    """Grade steps from `code` to the nearest planted code on its concept line at another grade: positive when
-    `code` is below it, negative when above; a tie counts as below. None when no such planted code."""
+def chain_offset(code: str, planted, families: Mapping[str, SkillFamily]) -> int | None:
+    """Grade steps from `code` to the nearest planted code sharing a skill family with it at another grade (the
+    lab's cross-grade map, R7): positive when `code` is below it, negative when above; a tie counts as below.
+    None when no such planted code."""
     if grade_of(code) not in GRADE_STEPS:
         return None
     at = GRADE_STEPS.index(grade_of(code))
+    kin = {c for f in families.values() if code in f.codes for c in f.codes}
     gaps = [GRADE_STEPS.index(grade_of(p)) - at for p in planted
-            if concept_line(p) == concept_line(code) and grade_of(p) != grade_of(code) and grade_of(p) in GRADE_STEPS]
+            if p in kin and grade_of(p) != grade_of(code) and grade_of(p) in GRADE_STEPS]
     return min(gaps, key=lambda g: (abs(g), -g)) if gaps else None
+
+
+def resolve_slots(found: set[str], planted: dict[str, int], slots: list[AnyOf]
+                  ) -> tuple[set[str], dict[str, int], int]:
+    """Turn a submission's any-of slots into one plant each (phase 3): a slot is hit when any of its codes was
+    found (the first found code stands for it, its other found codes are dropped, never false positives), else
+    its first code is the miss. A code planted exactly is not part of any slot. Returns (found, planted, hits)."""
+    found, planted, hits = set(found), dict(planted), 0
+    for slot in slots:
+        codes = [c for c in slot.codes if c not in planted]
+        if not codes:
+            continue
+        got = [c for c in codes if c in found]
+        pick = got[0] if got else codes[0]
+        planted[pick] = slot.level
+        hits += bool(got)
+        found -= set(got[1:])
+    return found, planted, hits
 
 
 def _offset_bucket(gap: int) -> str:
@@ -265,6 +285,7 @@ class EvalV2Report(BaseModel):
     stage_planted_lost: dict[str, int] = {}  # planted codes present before a step and gone after it
     baseline: GrowthBlock | None = None  # --baseline-log: the same submissions, scored from an earlier flag log
     chain: ChainFlags | None = None
+    slots: tuple[int, int] | None = None  # (hit, total) any-of slots on scored submissions (phase 3)
     steps: StepCounts | None = None
 
 
@@ -480,6 +501,8 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
     stopped = None
     stage_lost: Counter[str] = Counter()
     chain_count = 0
+    slot_hits = slot_total = 0
+    all_expected: dict[str, ExpectedRow] = {}  # scored submissions' keys, to rescore a baseline log on them
     chain_offsets: Counter[str] = Counter()
     chain_below: Counter[str] = Counter()
     steps = {"skipped": Counter(), "dropped:met": 0, "dropped:not_shown": 0, "absorbed": 0,
@@ -528,12 +551,15 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
             key = expected.get(row.submission_id)
             if flag_log is not None:
                 flag_log(res, assignment.id, row.student_hash,
-                         None if key is None else {w.standard: w.level for w in key.weaknesses})
+                         None if key is None else {w.standard: w.level for w in key.weaknesses},
+                         None if key is None else [a.model_dump() for a in key.any_of])
             if key is None:
                 counts["no_key"] += 1
                 continue
-            planted = {w.standard: w.level for w in key.weaknesses}
+            exact_planted = {w.standard: w.level for w in key.weaknesses}
             found = _growth(res)
+            kept, planted, hits = resolve_slots(set(found), exact_planted, key.any_of)  # one plant per slot
+            found = {c: v for c, v in found.items() if c in kept}
             fid = fidelity.get(row.submission_id)
             for code in found.keys() - planted.keys():  # reported, not planted, and the checker saw it too
                 if fid is not None:
@@ -544,19 +570,23 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
                 counts["excluded_fidelity"] += 1
                 continue
             counts["scored"] += 1
+            slot_hits += hits
+            slot_total += len(key.any_of)
+            all_expected[row.submission_id] = key
             if res.trace.get("stages"):  # the baseline row covers the same submissions as the stage rows
                 scored_keys.add((assignment.id, row.student_hash))
             prev = None
             for name, codes in res.trace.get("stages", {}).items():
-                tally.add(f"stage:{name}", set(codes), set(planted))
+                stage_codes, stage_planted, _ = resolve_slots(set(codes), exact_planted, key.any_of)
+                tally.add(f"stage:{name}", stage_codes, set(stage_planted))
                 if prev is not None:
-                    stage_lost[name] += len((prev & planted.keys()) - set(codes))
-                prev = set(codes)
+                    stage_lost[name] += len((prev & stage_planted.keys()) - stage_codes)
+                prev = stage_codes
             chain = {code for code in found.keys() - planted.keys()
-                     if any(concept_line(code) == concept_line(p) and grade_of(code) != grade_of(p) for p in planted)}
+                     if chain_offset(code, planted, families) is not None}
             chain_count += len(chain)
             for code in chain:
-                gap = chain_offset(code, planted)
+                gap = chain_offset(code, planted, families)
                 chain_offsets[_offset_bucket(gap)] += 1
                 if gap > 0:
                     chain_below[strand_of(code)] += 1
@@ -651,7 +681,7 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
     baseline = None
     if baseline_log is not None:
         baseline = baseline_from_log(baseline_log, {a for a, _ in scored_keys}, {h for _, h in scored_keys},
-                                     keys=scored_keys)
+                                     keys=scored_keys, expected=all_expected)
     profile = options.profile or s.bands_profile
     return EvalV2Report(
         course=version, through_week=through_week, pipeline=resolved, profile=profile, repeat=repeat,
@@ -698,16 +728,20 @@ def evaluate_course(s: Settings, version: str, through_week: int | None, options
         baseline=baseline,
         chain=ChainFlags(count=chain_count, exact_without=tally.block("no_chain").exact, offsets=dict(chain_offsets),
                          below_by_strand=dict(chain_below)) if "no_chain" in keys else None,
+        slots=(slot_hits, slot_total) if slot_total else None,
         steps=StepCounts(skipped=dict(steps["skipped"]), dropped_met=steps["dropped:met"],
                          dropped_not_shown=steps["dropped:not_shown"], absorbed=steps["absorbed"],
                          capped=dict(steps["capped"]), invalid=dict(steps["invalid"])) if supervised else None)
 
 
 def baseline_from_log(log: Path, assignments: set[str], students: set[str], exclude: set[str] = frozenset(),
-                      keys: set[tuple[str, str]] | None = None) -> GrowthBlock:
+                      keys: set[tuple[str, str]] | None = None,
+                      expected: Mapping[str, ExpectedRow] | None = None) -> GrowthBlock:
     """Scores an earlier run's flag log (spot_check.FlagLog rows) on the given assignments and students, so a
     supervised run can be compared on the same submissions. `exclude` drops submission ids; `keys`, when given,
-    keeps only those (assignment, student) pairs. Rows without an answer key are skipped."""
+    keeps only those (assignment, student) pairs. Rows without an answer key are skipped. With `expected`
+    (submission id -> today's key row), a row in it is scored on today's key, slots resolved, not on the planted
+    codes the log recorded: an earlier run rescored on a rebuilt key (phase 3)."""
     from agentic_lab.spot_check import read_log  # spot_check imports this module's neighbours; keep it local
     t = _Tally()
     t.add("baseline", set(), set())
@@ -716,8 +750,20 @@ def baseline_from_log(log: Path, assignments: set[str], students: set[str], excl
             continue
         if r.get("submission_id") in exclude or (keys is not None and (r["assignment"], r["student"]) not in keys):
             continue
-        t.add("baseline", {f["standard"] for f in r["flags"]}, set(r["planted"]))
+        flags = {f["standard"] for f in r["flags"]}
+        key = (expected or {}).get(r.get("submission_id"))
+        if key is not None:
+            flags, planted, _ = resolve_slots(flags, {w.standard: w.level for w in key.weaknesses}, key.any_of)
+            t.add("baseline", flags, set(planted))
+        else:
+            t.add("baseline", flags, set(r["planted"]))
     return t.block("baseline")
+
+
+def _slots_text(slots: tuple[int, int]) -> str:
+    hit, total = slots
+    return (f"Slots: hit {hit} of {total} (any-of plants, counted once each in the scores above; "
+            f"a hit is any of a slot's codes)")
 
 
 def _pct(x: float | None) -> str:
@@ -751,6 +797,8 @@ def format_report(r: EvalV2Report) -> str:
     if r.chain:
         lines.append(f"Chain flags: {r.chain.count}{_offsets_text(r.chain)}; exact precision without them "
                      f"{r.chain.exact_without.precision:.2f}")
+    if r.slots:
+        lines.append(_slots_text(r.slots))
     if r.stopped:
         lines.append(f"Stopped early: {r.stopped}")
     return "\n".join(lines)
@@ -799,10 +847,11 @@ def format_report_markdown(r: EvalV2Report) -> str:
         if r.steps:
             out += [f"- {_steps_line(r.steps)}"]
     if r.chain:
-        out += [f"- Chain flags (same concept line as a planted code, another grade): {r.chain.count}"
+        out += [f"- Chain flags (same skill family as a planted code, another grade): {r.chain.count}"
                 f"{_offsets_text(r.chain)}; exact precision without them {r.chain.exact_without.precision:.2f}",
-                f"- Below a planted code, by strand: {_counts(r.chain.below_by_strand)}. Until R7 (Phase 2), W.1.A, "
-                f"W.2.A and W.3.A chain flags across grade 6 may join different skills."]
+                f"- Below a planted code, by strand: {_counts(r.chain.below_by_strand)}."]
+    if r.slots:
+        out += [f"- {_slots_text(r.slots)}"]
     out += ["", "### By reviewer", ""]
     out += table(head, [block(k, v) for k, v in r.growth.by_reviewer.items()])
     out += ["", "### By submission type", ""]

@@ -33,7 +33,8 @@ class FlagLog:
         self.version = version
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
-    def __call__(self, res: ReviewResult, file_id: str, student: str, planted: dict[str, int] | None) -> None:
+    def __call__(self, res: ReviewResult, file_id: str, student: str, planted: dict[str, int] | None,
+                 any_of: list[dict] | None = None) -> None:
         reasons = defaultdict(list)
         for o in res.observations:
             reasons[o.standard_code].append(o.reason)
@@ -42,7 +43,7 @@ class FlagLog:
                  for v in res.verdicts if v.verdict == "growth_area"]
         row = {"version": self.version, "assignment": file_id, "student": student,
                "submission_id": res.submission_ref.submission_id, "attempt": res.submission_ref.attempt,
-               "planted": planted, "flags": flags,
+               "planted": planted, "any_of": any_of or [], "flags": flags,
                "removed": [{k: c[k] for k in _CHANGE_KEYS if k in c}  # supervised: what a step took away
                            for c in res.trace.get("supervisor", {}).get("changes", [])]}
         with self.path.open("a", encoding="utf-8", newline="\n") as fh:

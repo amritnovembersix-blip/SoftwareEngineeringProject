@@ -813,3 +813,52 @@ def test_per_standard_reviewer_falls_back_to_the_plain_key():
                        conditions={"L.1.A": ["p1"], "6+:L.1.A": ["q1"]})
     _run(rev)
     assert "p1" in chat.calls[0][2] and "q1" not in chat.calls[0][2]
+
+
+# ---- v6: full standard text and the kind of work (phase 3) ----
+
+def _full_std(code, lo, hi):
+    return StandardRef(code=code, concept="Revise and Edit", description="Review, revise, and edit writing",
+                       grade_min=lo, grade_max=hi, strand=code.split(".")[1], sub_expectation="use correct grammar")
+
+
+def _work(kind):
+    from agentic.lms.base import Assignment
+    return Assignment(id="a", name="A", submission_type=kind)
+
+
+def _ps_prompt(prompt, kind):
+    spec = ReviewerSpec(id="3-5-L", grades=(3, 5), strands=("L",), mode="per_standard", prompt=prompt)
+    chat = FakeChatModel({PerStandardOut: lambda s, u: PerStandardOut(judgments=[_meets(c) for c in _codes(u)])})
+    BandReviewer(spec, 3, 5, BandScope(_src(_full_std("4.L.1.A.a", 4, 4)), 3, 5, ["L"]), chat,
+                 load_prompt(PROMPTS, prompt)).review(SEGMENTS, "paragraph", _work(kind), True)
+    (_, _, user), = chat.calls
+    return user
+
+
+def _search_prompt(prompt, kind):
+    spec = ReviewerSpec(id="6-G-W", grades=(6, "course"), strands=("W",), mode="search", prompt=prompt)
+    chat = FakeChatModel({StepOut: lambda s, u: StepOut(judgments=[
+        _step(g, "meets") for g in _groups(u)])})
+    BandReviewer(spec, 6, 10, BandScope(_src(_full_std("9-10.W.3.A.c", 9, 10)), 6, 10, ["W"]), chat,
+                 load_prompt(PROMPTS, prompt)).review(SEGMENTS, "paragraph", _work(kind), True)
+    return chat.calls[0][2]
+
+
+def test_v6_lines_show_concept_description_and_sub_expectation():
+    line = "| Concept: Revise and Edit | Review, revise, and edit writing use correct grammar"
+    assert f"- 4.L.1.A.a {line}" in _ps_prompt("per_standard.v6", "paragraph")
+    assert f"- 9-10.W.3.A.c (grade 9) {line}" in _search_prompt("progression.v6", "paragraph")
+
+
+def test_v6_work_line_by_submission_type():
+    for render in (lambda k: _ps_prompt("per_standard.v6", k), lambda k: _search_prompt("progression.v6", k)):
+        assert "This is the student's final revised version." in render("essay")
+        assert "This is a single draft, not a revised piece." in render("paragraph")
+        assert "This is a single draft, not a revised piece." in render("short_answer")
+        assert "$" not in render("essay")
+
+
+def test_v5_prompt_text_is_unchanged():
+    for user in (_ps_prompt("per_standard.v5", "paragraph"), _search_prompt("progression.v5", "paragraph")):
+        assert "Concept:" not in user and "single draft" not in user and "$" not in user

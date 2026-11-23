@@ -27,7 +27,7 @@ from agentic_lab.sim.trigger import TriggerError
 from agentic_lab.synth import audit
 from agentic_lab.synth import generate_course as course_gen
 from agentic_lab.synth.families import load_families
-from agentic_lab.synth.generate_course import generate_course
+from agentic_lab.synth.generate_course import generate_course, rebuild_key
 from agentic_lab.synth.generate_essays import check_targets, generate
 from agentic_lab.synth.students import build_course, load_plan, validate_codes
 from agentic_lab.wiring import build_chat, build_synth_chat
@@ -199,6 +199,17 @@ def _detectability(detect: dict[int, tuple[int, int]]) -> str:
         hits, pairs = detect.get(level, (0, 0))
         parts.append(f"level {level} " + (f"{hits}/{pairs} ({hits / pairs:.0%})" if pairs else "n/a"))
     return ", ".join(parts)
+
+
+def _rebuild_key(args: argparse.Namespace) -> int:
+    s = lab_settings()
+    try:
+        for arm in ("control", "intervention"):
+            v = f"{args.version}-{arm}"
+            print(f"{v}: {rebuild_key(s.data_dir, v)} expected rows")
+    except (LookupError, ValueError, FileNotFoundError) as err:
+        return _err(str(err))
+    return 0
 
 
 def _generate_course(args: argparse.Namespace) -> int:
@@ -468,6 +479,9 @@ def main(argv: list[str] | None = None) -> int:
     bc.add_argument("--plan", required=True)
     bc.add_argument("--seed", type=int, default=2027)
     bc.set_defaults(func=_build_course)
+    rk = sub.add_parser("rebuild-key", help="rewrite a course's expected labels from the plan (no model calls)")
+    rk.add_argument("--version", default="2.00", help="course version without the arm (both arms are rebuilt)")
+    rk.set_defaults(func=_rebuild_key)
     gc = sub.add_parser("generate-course", help="write a v2 course's submissions, expected labels and fidelity")
     gc.add_argument("--arm", choices=["control", "intervention", "both"], default="both")
     gc.add_argument("--version", default="2.00", help="course version without the arm (folder <version>-<arm>)")
