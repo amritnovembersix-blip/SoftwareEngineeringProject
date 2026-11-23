@@ -293,3 +293,13 @@ def test_simulate_wait_timeout_prints_the_message_and_exits_2(fake_sim, capsys):
     fake_sim["e"] = TimeoutError("week 4: 3 of 36 runs not finished after 30 minutes")
     assert main(["simulate", "advance", "--wait"]) == 2
     assert "week 4: 3 of 36 runs not finished after 30 minutes" in capsys.readouterr().err
+
+
+def test_rebuild_key_runs_both_arms_and_prints_counts(monkeypatch, capsys):
+    import agentic_lab.__main__ as cli
+    calls = []
+    monkeypatch.setattr(cli, "rebuild_key", lambda d, v: calls.append(v) or 7)
+    assert main(["rebuild-key", "--version", "2.00"]) == 0
+    assert calls == ["2.00-control", "2.00-intervention"]
+    out = capsys.readouterr().out
+    assert "2.00-control: 7 expected rows" in out and "2.00-intervention: 7 expected rows" in out

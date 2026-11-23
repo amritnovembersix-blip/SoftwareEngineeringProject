@@ -220,3 +220,37 @@ def test_real_quizzes_pass_mc_fidelity_for_every_single_planted_code():
             for level in (2, 3):
                 levels = {code: level}
                 assert mc_fidelity(a, levels, choose_answers(a, levels, random.Random(0)), "s") is None, (a.id, code)
+
+
+# ---- the answer key: key_codes (phase 3) ----
+
+from agentic_lab.answer_key import ExpectedRow  # noqa: E402
+from agentic_lab.config import SYNTHETIC_DIR  # noqa: E402
+from agentic_lab.synth.evidence import key_codes  # noqa: E402
+from agentic_lab.synth.families import load_families  # noqa: E402
+
+FAMILIES = load_families(SYNTHETIC_DIR / "skill_families.json")
+
+
+def test_key_drops_revise_and_edit_on_paragraphs_and_short_answers():
+    levels = {"5.L.1.B.g": 1, "9-10.W.3.A.c": 2, "9-10.RL.1.A": 1}
+    short = AssignmentFile.model_validate_json((CURRICULA / "ela9v2-a03.json").read_text(encoding="utf-8"))
+    for asg in (_asg("paragraph"), short):
+        exact, slots = key_codes(asg, "RL", levels, FAMILIES)
+        assert "9-10.W.3.A.c" not in exact and exact["5.L.1.B.g"] == 1
+        assert {s.family for s in slots} == {"agreement", "sentence_boundaries"}  # mechanics keeps 5.L.1.B.g
+    exact, slots = key_codes(_asg("essay"), "RL", levels, FAMILIES)
+    assert exact["9-10.W.3.A.c"] == 2 and slots == []
+
+
+def test_empty_family_gets_one_slot_of_its_highest_grade_3_5_codes():
+    exact, slots = key_codes(_asg("paragraph"), "RL", {"9-10.W.3.A.c": 2, "8.W.3.A.c": 1}, FAMILIES)
+    by = {s.family: s for s in slots}
+    assert by["mechanics"].codes == ["5.L.1.B.g", "5.L.1.B.h"] and by["mechanics"].level == 2
+    assert by["agreement"].codes == ["5.L.1.A.c", "5.L.1.A.d"]
+    assert by["sentence_boundaries"].codes == ["5.L.1.A.e", "5.L.1.B.b", "5.L.1.B.c"]
+    assert exact == {}
+
+
+def test_old_expected_rows_without_any_of_still_load():
+    assert ExpectedRow.model_validate_json('{"student_hash":"h","submission_id":"s","weaknesses":[]}').any_of == []

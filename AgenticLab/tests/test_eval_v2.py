@@ -786,7 +786,7 @@ def test_students_limit_takes_the_first_roster_students_in_roster_order(data):
 
 def test_flag_log_gets_every_reviewed_submission_with_its_planted_codes(data):
     seen = []
-    _run(data, flag_log=lambda res, file_id, student, planted: seen.append((file_id, student, planted)))
+    _run(data, flag_log=lambda res, file_id, student, planted, any_of=None: seen.append((file_id, student, planted)))
     assert len(seen) == 6
     assert ("ela9v2-a01", A1, {"9-10.RL.1.A": 2, "9-10.W.3.A.c": 1}) in seen
     assert ("ela9v2-a01", B2, {}) in seen
@@ -917,17 +917,78 @@ def test_baseline_covers_only_the_submissions_with_stages(data, tmp_path):
 from agentic_lab.eval_v2 import chain_offset  # noqa: E402
 
 
+from agentic_lab.config import SYNTHETIC_DIR  # noqa: E402
+from agentic_lab.synth.families import SkillFamily, load_families  # noqa: E402
+
+FAMS = load_families(SYNTHETIC_DIR / "skill_families.json")
+
+
 def test_chain_offset_counts_grade_steps_below_and_above():
-    assert chain_offset("8.W.3.A.c", ["9-10.W.3.A.c"]) == 1
-    assert chain_offset("6.W.3.A.c", ["9-10.W.3.A.c"]) == 3
-    assert chain_offset("9-10.L.1.A.e", ["5.L.1.A.e"]) == -4
-    assert chain_offset("5.L.1.A.e", ["5.L.1.A.c"]) is None  # same grade: not a chain flag
+    assert chain_offset("8.W.3.A.c", ["9-10.W.3.A.c"], FAMS) == 1
+    assert chain_offset("6.W.3.A.c", ["9-10.W.3.A.c"], FAMS) == 3
+    assert chain_offset("9-10.W.3.A.c", ["5.L.1.A.e"], FAMS) == -4
+    assert chain_offset("5.L.1.A.e", ["5.L.1.A.c"], FAMS) is None  # same grade: not a chain flag
 
 
 def test_chain_offset_tie_counts_as_below():
-    assert chain_offset("7.W.3.A.c", ["6.W.3.A.c", "8.W.3.A.c"]) == 1
+    assert chain_offset("7.W.3.A.c", ["6.W.3.A.c", "8.W.3.A.c"], FAMS) == 1
+
+
+def test_chain_offset_uses_skill_families():
+    fams = {"agreement": SkillFamily("agreement", ["4.L.1.A.e", "5.L.1.A.c", "9-10.W.3.A.c"])}
+    assert chain_offset("4.L.1.A.e", {"5.L.1.A.c": 1}, fams) == 1
+    assert chain_offset("9-10.W.3.A.c", {"5.L.1.A.c": 1}, fams) == -4
+    assert chain_offset("4.L.1.B.c", {"5.L.1.A.c": 1}, fams) is None
 
 
 def test_report_has_chain_offsets(data):
     r = _run(data, _supervised())
     assert r.chain.offsets == {"below 1": 1} and r.chain.below_by_strand == {"RL": 1}  # 8.RL.1.A vs 9-10.RL.1.A
+
+
+# ---- phase 3: any-of slots ----
+
+from agentic_lab.answer_key import AnyOf  # noqa: E402
+from agentic_lab.eval_v2 import resolve_slots  # noqa: E402
+
+
+def test_slot_hit_by_any_code_counts_once_and_extra_codes_are_not_fp():
+    slot = AnyOf(family="mechanics", codes=["5.L.1.B.g", "5.L.1.B.h"], level=2)
+    found, planted, hits = resolve_slots({"5.L.1.B.g", "5.L.1.B.h", "3.L.1.A.c"}, {"3.L.1.A.c": 1}, [slot])
+    assert hits == 1 and planted == {"3.L.1.A.c": 1, "5.L.1.B.g": 2} and found == {"5.L.1.B.g", "3.L.1.A.c"}
+
+
+def test_missed_slot_is_one_fn():
+    found, planted, hits = resolve_slots(set(), {}, [AnyOf(family="m", codes=["5.L.1.B.g", "5.L.1.B.h"], level=1)])
+    assert hits == 0 and planted == {"5.L.1.B.g": 1} and found == set()
+
+
+def test_exact_plant_wins_over_slot():
+    found, planted, hits = resolve_slots({"5.L.1.B.g"}, {"5.L.1.B.g": 1},
+                                         [AnyOf(family="m", codes=["5.L.1.B.g", "5.L.1.B.h"], level=2)])
+    assert planted == {"5.L.1.B.g": 1, "5.L.1.B.h": 2} and hits == 0 and found == {"5.L.1.B.g"}
+
+
+def test_report_counts_slot_hits(data):
+    key = data / "courses" / VERSION / "answer_key" / "expected" / "ela9v2-a01.jsonl"
+    rows = _expected("ela9v2-a01", {A1: [("9-10.RL.1.A", 2)], B2: []})
+    rows[0]["any_of"] = [{"family": "x", "codes": ["9-10.W.3.A.c", "9-10.W.3.A.d"], "level": 1}]
+    _write(key, rows)
+    r = _run(data)
+    assert r.slots == (1, 1)
+    assert "Slots: hit 1 of 1" in eval_v2.format_report(r)
+    assert "Slots: hit 1 of 1" in eval_v2.format_report_markdown(r)
+    g = r.growth.overall.exact
+    assert (g.tp, g.fp, g.fn) == (3, 1, 0)  # the slot's 9-10.W.3.A.d is a hit; W.3.A.c is no longer an exact plant
+
+
+def test_baseline_log_is_scored_on_the_current_key(data, tmp_path):
+    sid = f"sub-control-ela9v2-a02-{A1[:8]}"
+    log = tmp_path / "flags.jsonl"
+    log.write_text(json.dumps({"assignment": "ela9v2-a02", "student": A1, "submission_id": sid,
+                               "planted": {"9-10.W.3.A.c": 1}, "flags": [{"standard": "9-10.RL.1.A"}]}) + "\n",
+                   encoding="utf-8")
+    exp = {sid: eval_v2.ExpectedRow(student_hash=A1, submission_id=sid,
+                                    weaknesses=[{"standard": "9-10.RL.1.A", "level": 2}])}
+    b = eval_v2.baseline_from_log(log, {"ela9v2-a02"}, {A1}, expected=exp)
+    assert (b.exact.tp, b.exact.fp, b.exact.fn) == (1, 0, 0)  # the log's old planted code is ignored

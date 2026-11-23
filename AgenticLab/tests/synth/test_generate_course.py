@@ -8,11 +8,11 @@ from agentic.coursedata import AssignmentFile, CourseDir, due_at
 from agentic.llm.fake import FakeChatModel
 from agentic_lab.answer_key import ExpectedRow, FidelityRow, StudentKey, answer_key_path
 from agentic_lab.config import SYNTHETIC_DIR
-from agentic_lab.synth.evidence import evidenced
+from agentic_lab.synth.evidence import evidenced, key_codes
 from agentic_lab.synth.families import load_families
 from agentic_lab.synth.generate_course import (
     EssayOut2, FamilyCheck, FidelityOut, ParagraphOut, ShortAnswerOut, build_checker_prompt, build_writer_prompt,
-    generate_course)
+    generate_course, rebuild_key)
 from agentic_lab.synth.students import CoursePlan, build_course, levels_at
 
 FIXTURE = Path(__file__).resolve().parents[1] / "data" / "coursedir"
@@ -238,8 +238,8 @@ def test_expected_for_rl_paragraph_matches_evidenced(data):
     assert len(rows) == 3
     for row in rows:
         levels = levels_at(keys[row.student_hash], a02.week, [], FAMILIES, 9)
-        want = evidenced(a02, "RL", levels)
-        assert {w.standard: w.level for w in row.weaknesses} == want
+        want, slots = key_codes(a02, "RL", levels, FAMILIES)
+        assert {w.standard: w.level for w in row.weaknesses} == want and row.any_of == slots
         assert [w.standard for w in row.weaknesses] == sorted(want)
     shallow = next(r for r in rows if keys[r.student_hash].profile == SHALLOW)
     assert {w.standard for w in shallow.weaknesses} == {"8.RL.1.A", "9-10.RL.1.A"}  # RI members excluded
@@ -983,3 +983,16 @@ def test_cli_pass_rate_is_written_only_and_mc_has_its_own_line(data, monkeypatch
     assert "0.95-control: 4 written, 0 skipped, 1 failed fidelity, 10 mc; fidelity pass rate 75%" in lines
     assert ("0.95-control: multiple choice 8/10 passed concept fidelity; detectability (pairs with >= 2 picks): "
             "level 1 3/6 (50%), level 2 4/4 (100%), level 3 n/a") in lines
+
+
+def test_rebuild_key_rewrites_expected_only(data):
+    _run(_chat(), data)
+    key = answer_key_path(data, CTRL)
+    before = {p: p.read_bytes() for p in (data / "courses" / CTRL).rglob("*") if p.is_file()}
+    (key / "expected" / "ela9v2-a02.jsonl").write_text("", encoding="utf-8")  # rebuilt from the plan
+    written = rebuild_key(data, CTRL)
+    after = {p: p.read_bytes() for p in (data / "courses" / CTRL).rglob("*") if p.is_file()}
+    assert written == sum(len(_rows(p)) for p in (key / "expected").glob("*.jsonl"))
+    assert {p for p in before if before[p] != after[p]} == set()  # same bytes as generate_course wrote
+    subs = {r["submission_id"] for p in (data / "courses" / CTRL / "submissions").glob("*.jsonl") for r in _rows(p)}
+    assert {r["submission_id"] for p in (key / "expected").glob("*.jsonl") for r in _rows(p)} == subs

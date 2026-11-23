@@ -4,8 +4,9 @@ import random
 from collections.abc import Mapping
 
 from agentic.coursedata import AssignmentFile, ItemAnswer
-from agentic_lab.answer_key import FidelityRow
-from agentic_lab.synth.families import grade_key
+from agentic.review.v2.scope import excluded
+from agentic_lab.answer_key import AnyOf, FidelityRow
+from agentic_lab.synth.families import SkillFamily, grade_key
 
 
 def concept_of(code: str) -> str:
@@ -29,6 +30,33 @@ def evidenced(assignment: AssignmentFile, module_strand: str, levels: dict[str, 
                 or (_strand(c) == "R" and 3 <= grade_key(c) <= 5)}
     item_codes |= {ch.standard for i in assignment.items for ch in i.choices if ch.standard}
     return {c: lv for c, lv in levels.items() if c in item_codes}
+
+
+SINGLE_DRAFT_EXCLUDED = ("6+:W.3.A", "3-5:W.1.C")  # Revise and Edit: supervised's exclude_by_type (phase 3)
+
+
+def key_codes(assignment: AssignmentFile, module_strand: str, levels: dict[str, int],
+              families: Mapping[str, SkillFamily]) -> tuple[dict[str, int], list[AnyOf]]:
+    """What the answer key plants: `evidenced` without Revise and Edit on paragraphs and short answers, plus one
+    `AnyOf` slot per family left with no code, holding its codes at its highest grade 3-5 step that the
+    submission can evidence. The writer still uses `evidenced`: the essays don't change."""
+    ev = evidenced(assignment, module_strand, levels)
+    if assignment.type not in ("paragraph", "short_answer"):
+        return ev, []
+    kept = {c: lv for c, lv in ev.items() if not excluded(c, SINGLE_DRAFT_EXCLUDED)}
+    dropped = ev.keys() - kept.keys()
+    slots: list[AnyOf] = []
+    for name in sorted(families):
+        codes = families[name].codes
+        lost = [c for c in codes if c in dropped]
+        if not lost or any(c in kept for c in codes):
+            continue
+        low = [c for c in codes if grade_key(c) <= 5 and evidenced(assignment, module_strand, {c: 1})]
+        if low:
+            top = max(grade_key(c) for c in low)
+            slots.append(AnyOf(family=name, codes=sorted(c for c in low if grade_key(c) == top),
+                               level=max(ev[c] for c in lost)))
+    return kept, slots
 
 
 def choose_answers(assignment: AssignmentFile, levels: dict[str, int], rng: random.Random) -> list[ItemAnswer]:

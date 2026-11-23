@@ -77,19 +77,24 @@ fetch -> route by type -> multiple choice -> mc_lookup (no LLM) ----------------
 | `graded` | `3-language`, `3-writing`, `3-reading`, likewise for grades 4 and 5, then `6+-writing`, `6+-reading` | 3-5 reviewed per grade and strand at low reasoning with `per_standard.v2` (a higher evidence bar; `full` and `lean` stay on v1); 6+ by downward search at high reasoning, one call per round (course grade 9: 9 + 2 reviewers, plus root cause) |
 | `full` | `3-5-language`, `3-5-writing`, `3-5-reading`, `6+-writing`, `6+-reading` | 5 reviewers, plus root cause, plus Jev: up to 7 |
 | `lean` | `3-5-all`, `6+-all` | 2 reviewers: 2 to 4 |
-| `supervised` | `graded`'s reviewers with the prompt audit's prompts (`per_standard.v5`, `progression.v5` and `conditions.v3`; see below), plus a planner, a critic and an arbiter | `graded`'s calls, minus the reviewers the planner skips, plus one critic and one arbiter call per written submission (high reasoning) and one planner call per assignment (low reasoning, cached) |
+| `supervised` | `graded`'s reviewers with the prompt audit's prompts (`per_standard.v6`, `progression.v6`, `conditions.v3` and `exclude_by_type`; see below), plus a planner, a critic and an arbiter | `graded`'s calls, minus the reviewers the planner skips, plus one critic and one arbiter call per written submission (high reasoning) and one planner call per assignment (low reasoning, cached) |
 
 **The supervised profile's reviewers** (`docs/superpowers/specs/2026-11-18-reviewer-fixes-design.md`) differ from
-`graded`'s in three ways:
+`graded`'s in these ways:
 - The grade 3-5 language reviewers stay one per grade. A single `3-5-language` reviewer that filed each error under
   its lowest grade (`per_standard.v4`) was tried and undone: it lost grade 5 language recall
   (`docs/evaluations/2026-11-18-reviewer-fixes-phase1-2.00-control-wk3.md`).
-- `progression.v5`: a failed grade 6+ step lists the lines it falls short of (`short_of`); only those become growth
+- `progression.v5`+: a failed grade 6+ step lists the lines it falls short of (`short_of`); only those become growth
   areas, the other lines at that step meet. A reply with no valid `short_of` flags every line (drop `no_short_of`).
 - Both prompts define the support levels (approaching: one slip; developing: a repeated pattern; beginning: mostly
   absent or wrong) and keep the callout that work may meet a standard.
 - `conditions = "conditions.v3"`: conditions written against each concept, shown as context, with `3-5:` and `6+:`
   keys for concepts that change meaning at grade 6 (v3 drops "titles of works" from L.1.B).
+- `v6` prompts show each standard's concept and full MLS text, and say whether the work is a single draft (paragraph,
+  short answer) or a final revised version (essay).
+- `exclude_by_type`: paragraphs and short answers are never judged on Revise and Edit (`6+:W.3.A`, `3-5:W.1.C`);
+  those standards are recorded `not_evident` by `scope` and never sent to a reviewer
+  (`docs/superpowers/specs/2026-11-22-reviewer-fixes-phase3-design.md`).
 
 **The supervised profile** (`docs/superpowers/specs/2026-11-17-review-supervisor-design.md`) adds three checking
 steps to `graded`, to cut false flags:
@@ -320,7 +325,7 @@ docker compose up -d --build agentic                          # container (from 
 | `POST /events/submission-graded` | `X-SASS-Webhook-Secret` = `WEBHOOK_SECRET` | LMS grading webhook. 202 with a `run_id`; the review runs in the background. One run per (submission, attempt): repeats return `duplicate: true`; a failed run can be retried |
 | `GET /runs/{run_id}` | `Bearer AGENTIC_API_TOKEN` | Run status, counts, skips; `paused` is `daily_quota` when the daily budget ran out; `error` is an exception class name only |
 | `GET`/`PUT /review-policy` | bearer | In-memory policy. `on_grade: false` makes the webhook ignore events |
-| `POST /sweeps` | bearer | Review every submission in a course (`{"course_id": ...}`, optional `assignment_id`; no body = every course). 202 + `run_id`; counts on `GET /runs/{id}` update as each review finishes. Already-reviewed attempts are skipped; a sweep of the same scope still running is returned with `duplicate: true`. Backend integration notes: `docs/superpowers/specs/2026-10-14-review-button-demo-design.md` (lab repo) |
+| `POST /sweeps` | bearer | Review every submission in a course (`{"course_id": ...}`, optional `assignment_id` and/or `user_id` for one student; no body = every course). 202 + `run_id`; counts on `GET /runs/{id}` update as each review finishes. Already-reviewed attempts are skipped; a sweep of the same scope still running is returned with `duplicate: true`. Backend integration notes: `docs/superpowers/specs/2026-10-14-review-button-demo-design.md` (lab repo) |
 | `GET /settings`, `PUT /settings/{key}`, `GET /settings/{key}/history` | bearer | Teacher/admin review settings (see Framework v2) |
 | `POST /trend-analyses` | bearer | Trend analysis of a classroom or one student (`{"course_id", "scope", "user_id", "as_of"}`) from the saved reviews. 202 + `run_id` (`GET /runs/{id}`); unknown course or student is a 422. Analyses also run automatically after reviews |
 

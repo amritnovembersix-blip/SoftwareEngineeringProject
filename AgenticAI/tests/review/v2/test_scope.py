@@ -87,3 +87,13 @@ def test_conditions_for_falls_back_to_the_plain_key():
 def test_conditions_for_never_uses_the_other_bands_key():
     assert conditions_for(COND, "5.W.3.A.a") is None
     assert conditions_for(COND, "8.W.2.A.a") is None
+
+
+from agentic.review.v2.scope import excluded  # noqa: E402
+
+
+def test_excluded_matches_band_and_plain_keys():
+    keys = ["6+:W.3.A", "3-5:W.1.C"]
+    assert excluded("9-10.W.3.A.c", keys) and excluded("4.W.1.C.a", keys)
+    assert not excluded("5.W.3.A.a", keys) and not excluded("7.W.1.A.a", keys)
+    assert excluded("7.W.1.C.a", ["W.1.C"])

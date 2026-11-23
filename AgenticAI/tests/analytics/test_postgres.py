@@ -100,9 +100,10 @@ class World:
                           (fid, self.std[code]))
         return fid
 
-    def respond(self, sid, n, stance):
-        self.conn.execute("INSERT INTO teacher_response (finding_id, teacher_id, stance) VALUES (%s, 'tr-t', %s)",
-                          (self.findings[(sid, n)], stance))
+    def respond(self, sid, n, stance, at=None):
+        # Explicit times: inside one transaction now() is the same for every row.
+        self.conn.execute("INSERT INTO teacher_response (finding_id, teacher_id, stance, responded_at) "
+                          "VALUES (%s, 'tr-t', %s, COALESCE(%s, now()))", (self.findings[(sid, n)], stance, at))
 
     def standard_class(self):
         """a, b, c: growth areas on three assignments (a and b link to the lower-grade root); d: meets
@@ -156,6 +157,16 @@ def test_reader_overruled_follows_disagree_and_dismiss(world):
     world.respond("tr-a", 2, "agree")
     over = {r.submission_id: r.overruled for r in PostgresResultsReader(world.conn).verdict_rows(CID, AS_OF, "tr-a")}
     assert [over[str(world.submissions[("tr-a", n)])] for n in range(3)] == [True, True, False]
+
+
+def test_reader_overruled_follows_the_latest_response(world):
+    t0 = datetime(2026, 11, 2, 9, tzinfo=timezone.utc)
+    world.respond("tr-a", 0, "disagree", t0)             # changed their mind: agree counts
+    world.respond("tr-a", 0, "agree", t0 + timedelta(hours=1))
+    world.respond("tr-a", 1, "agree", t0)                # agreed first, dismissed later: dismiss counts
+    world.respond("tr-a", 1, "dismiss", t0 + timedelta(hours=1))
+    over = {r.submission_id: r.overruled for r in PostgresResultsReader(world.conn).verdict_rows(CID, AS_OF, "tr-a")}
+    assert [over[str(world.submissions[("tr-a", n)])] for n in range(2)] == [False, True]
 
 
 def test_reader_links_and_missing_due_date(world):

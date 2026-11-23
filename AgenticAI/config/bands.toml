@@ -154,18 +154,21 @@ reasoning = "high"
 # plus three checking steps (docs/superpowers/specs/2026-11-17-review-supervisor-design.md): a planner (per assignment:
 # which grade 3-5 writing and reading reviewers run), a critic (keeps or drops each growth area against its cited
 # evidence) and an arbiter (one problem, one standard). Each step can be switched off per run.
-# Reviewer fixes: per_standard.v5 (support levels defined, R6) and progression.v5 (a failed step names its lines, R1);
+# Reviewer fixes: per_standard.v6 and progression.v6 (v5: support levels defined, R6; a failed step names its lines, R1;
+# v6: each standard shows its concept and full text, and the kind of work, R2);
 # conditions.v3 (R5). R3 (one 3-5 language reviewer, lowest grade first) was tried and undone after it lost grade 5
 # language recall (docs/evaluations/2026-11-18-reviewer-fixes-phase1-2.00-control-wk3.md).
 [profiles.supervised]
 conditions = "conditions.v3"
+# Paragraphs and short answers are single drafts: never judged on Revise and Edit (phase 3, R2)
+exclude_by_type = { paragraph = ["6+:W.3.A", "3-5:W.1.C"], short_answer = ["6+:W.3.A", "3-5:W.1.C"] }
 
 [[profiles.supervised.reviewers]]
 id = "3-language"
 grades = [3, 3]
 strands = ["L"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -173,7 +176,7 @@ id = "3-writing"
 grades = [3, 3]
 strands = ["W"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -181,7 +184,7 @@ id = "3-reading"
 grades = [3, 3]
 strands = ["R"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -189,7 +192,7 @@ id = "4-language"
 grades = [4, 4]
 strands = ["L"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -197,7 +200,7 @@ id = "4-writing"
 grades = [4, 4]
 strands = ["W"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -205,7 +208,7 @@ id = "4-reading"
 grades = [4, 4]
 strands = ["R"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -213,7 +216,7 @@ id = "5-language"
 grades = [5, 5]
 strands = ["L"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -221,7 +224,7 @@ id = "5-writing"
 grades = [5, 5]
 strands = ["W"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -229,7 +232,7 @@ id = "5-reading"
 grades = [5, 5]
 strands = ["R"]
 mode = "per_standard"
-prompt = "per_standard.v5"
+prompt = "per_standard.v6"
 reasoning = "low"
 
 [[profiles.supervised.reviewers]]
@@ -237,7 +240,7 @@ id = "6+-writing"
 grades = [6, "course"]
 strands = ["W"]
 mode = "search"
-prompt = "progression.v5"
+prompt = "progression.v6"
 reasoning = "high"
 
 [[profiles.supervised.reviewers]]
@@ -245,7 +248,7 @@ id = "6+-reading"
 grades = [6, "course"]
 strands = ["RL", "RI"]
 mode = "search"
-prompt = "progression.v5"
+prompt = "progression.v6"
 reasoning = "high"
 
 [profiles.supervised.supervisor]

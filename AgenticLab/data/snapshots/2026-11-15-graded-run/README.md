@@ -30,7 +30,7 @@ few words of the story being read (for example "Whitney admits 'a sudden dread'"
 
 ## Load it
 
-It needs a **fresh** database with migrations V1–V8 applied. It uses the same classroom IDs as `fill-demo`, so don't
+It needs a **fresh** database with all migrations applied (V1–V9). It uses the same classroom IDs as `fill-demo`, so don't
 load both into one database. From the team repo root, with Docker running (Git Bash):
 
 ```bash

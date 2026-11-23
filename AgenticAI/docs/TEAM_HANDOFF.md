@@ -69,7 +69,7 @@ Don't show a percentage: SASS doesn't score.
 `rejected`, plus `decided_by` and `decided_at`). A teacher's decision survives later analyses.
 
 Findings stay immutable. A teacher dismissing or disagreeing with a finding is a `teacher_response` row; the next
-analysis counts that as meets.
+analysis counts that as meets. Each answer is a new row and the latest one counts, so a later `agree` undoes it.
 
 ## What changes on your side
 
