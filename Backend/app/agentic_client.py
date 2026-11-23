@@ -29,6 +29,8 @@ def _call(method: str, path: str, json: dict | None = None) -> dict:
         raise AgenticError(404, "no such review run (runs are lost when the agentic service restarts)")
     if resp.status_code == 422:
         raise AgenticError(404, "the agentic service doesn't know this classroom")
+    if resp.status_code == 429:
+        raise AgenticError(429, "the AI service is busy right now; try again in a minute")
     if resp.status_code >= 400:
         raise AgenticError(502, f"the agentic service returned {resp.status_code}")
     return resp.json()

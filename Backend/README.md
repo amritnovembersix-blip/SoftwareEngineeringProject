@@ -119,6 +119,22 @@ use `pytestmark = pytest.mark.real_auth` and send real tokens (`tests/test_acces
 No percentages or scores: SASS doesn't grade. `needs_attention` means Developing or Beginning on at
 least 2 of the last 3 pieces of work.
 
+## Review class progress
+
+`GET /reviews/{run_id}` returns `run_id`, `status` (`queued`, `running`, `succeeded`, `failed`),
+`done` (reviewed now + already reviewed), `total`, and also `completed`, `skipped`, `failed`,
+`not_started`, `quota_reached`, and a ready-to-show `message`:
+
+| Situation | `message` |
+|---|---|
+| Running | `Reviewing… 7 of 18 done.` |
+| All done | `All 18 essays reviewed.` |
+| Some failed | `17 of 18 done, 1 failed. Click Review class again to retry; reviewed essays are kept.` |
+| AI daily limit reached | `12 of 18 done, 6 waiting because the AI's daily limit was reached. Click Review class again tomorrow to finish; reviewed essays are kept.` |
+
+If the agentic service answers 429 (busy), starting or checking a review returns **429** "the AI
+service is busy right now; try again in a minute". Nothing already reviewed is redone on a retry.
+
 ## Class views
 
 | Endpoint | What it returns |
