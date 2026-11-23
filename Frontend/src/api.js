@@ -127,11 +127,22 @@ async function request(method, path, { body, auth = true } = {}) {
 
 export const api = {
   // Authentication
-  login: (email, password) =>
-    request("POST", "/auth/login", {
+  login: async (email, password) => {
+    const data = await request("POST", "/auth/login", {
       body: { email, password },
       auth: false,
-    }),
+    });
+
+    // Convert backend response to frontend session format.
+    return {
+      token: data.access_token,
+      name: data.user?.display_name,
+      role: data.user?.role,
+      id: data.user?.id,
+      email: data.user?.email,
+      teacher_id: data.user?.teacher_id,
+    };
+  },
 
   me: () =>
     request("GET", "/auth/me"),
@@ -152,7 +163,14 @@ export const api = {
     request(
       "GET",
       `/students/${encodeURIComponent(studentId)}/findings`
+
     ),
+// Student insights
+  studentInsights: (studentId) =>
+    request(
+    "GET",
+    `/students/${encodeURIComponent(studentId)}/insights`
+  ),
 
   // Start review
   startReview: (classroomId) =>

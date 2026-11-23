@@ -5,14 +5,18 @@ import { api } from "../api.js";
 import { Status } from "../components/Layout.jsx";
 
 function isValidNumber(value) {
-  return value !== null &&
+  return (
+    value !== null &&
     value !== undefined &&
     value !== "" &&
-    Number.isFinite(Number(value));
+    Number.isFinite(Number(value))
+  );
 }
 
 function displayCount(value) {
-  return isValidNumber(value) ? Number(value).toLocaleString() : "—";
+  return isValidNumber(value)
+    ? Number(value).toLocaleString()
+    : "—";
 }
 
 function getReviewPercentage(reviewed, total) {
@@ -21,9 +25,13 @@ function getReviewPercentage(reviewed, total) {
   }
 
   const totalCount = Number(total);
+
   if (totalCount <= 0) return null;
 
-  return Math.round((Number(reviewed) / totalCount) * 100);
+  const percentage =
+    (Number(reviewed) / totalCount) * 100;
+
+  return Math.min(100, Math.round(percentage));
 }
 
 export default function ClassroomsPage() {
@@ -38,7 +46,9 @@ export default function ClassroomsPage() {
         if (active) setClassrooms(data);
       })
       .catch((e) => {
-        if (active) setError(e.message || "Unable to load classrooms.");
+        if (active) {
+          setError(e.message || "Unable to load classrooms.");
+        }
       });
 
     return () => {
@@ -50,7 +60,8 @@ export default function ClassroomsPage() {
     (classroom) => isValidNumber(classroom.student_count)
   )
     ? classrooms.reduce(
-        (sum, classroom) => sum + Number(classroom.student_count),
+        (sum, classroom) =>
+          sum + Number(classroom.student_count),
         0
       )
     : null;
@@ -72,6 +83,7 @@ export default function ClassroomsPage() {
                 <div className="overview-icon" aria-hidden="true">
                   <span>♧</span>
                 </div>
+
                 <div>
                   <p>My Classrooms</p>
                   <h2>{classrooms.length}</h2>
@@ -82,6 +94,7 @@ export default function ClassroomsPage() {
                 <div className="overview-icon" aria-hidden="true">
                   <span>♙</span>
                 </div>
+
                 <div>
                   <p>Total Students</p>
                   <h2>{displayCount(totalStudents)}</h2>
@@ -89,10 +102,15 @@ export default function ClassroomsPage() {
               </div>
             </section>
 
-            <section className="classroom-section">
+            <section
+              className="classroom-section"
+              id="classroom-overview"
+            >
               <div className="section-heading">
                 <h2>Classroom Overview</h2>
-                <p>Your enrolled classrooms and review progress.</p>
+                <p>
+                  Your enrolled classrooms and review progress.
+                </p>
               </div>
 
               {classrooms.length === 0 ? (
@@ -110,16 +128,22 @@ export default function ClassroomsPage() {
                     return (
                       <Link
                         key={classroom.id}
-                        to={`/classrooms/${encodeURIComponent(classroom.id)}`}
+                        to={`/classrooms/${encodeURIComponent(
+                          classroom.id
+                        )}`}
                         className="classroom-dashboard-card"
                       >
                         <div className="classroom-card-header">
-                          <div className="classroom-icon" aria-hidden="true">
+                          <div
+                            className="classroom-icon"
+                            aria-hidden="true"
+                          >
                             <span>▤</span>
                           </div>
 
                           <div className="classroom-title">
                             <h3>{classroom.name}</h3>
+
                             <span className="classroom-grade">
                               Grade {classroom.grade_level}
                               {classroom.subject
@@ -128,31 +152,46 @@ export default function ClassroomsPage() {
                             </span>
                           </div>
 
-                          <span className="classroom-arrow" aria-hidden="true">
+                          <span
+                            className="classroom-arrow"
+                            aria-hidden="true"
+                          >
                             →
                           </span>
                         </div>
 
                         <div className="classroom-card-stats">
                           <div className="classroom-stat">
-                            <span className="stat-icon" aria-hidden="true">
+                            <span
+                              className="stat-icon"
+                              aria-hidden="true"
+                            >
                               ♙
                             </span>
+
                             <div>
                               <strong>
-                                {displayCount(classroom.student_count)}
+                                {displayCount(
+                                  classroom.student_count
+                                )}
                               </strong>
                               <span>Students</span>
                             </div>
                           </div>
 
                           <div className="classroom-stat">
-                            <span className="stat-icon" aria-hidden="true">
+                            <span
+                              className="stat-icon"
+                              aria-hidden="true"
+                            >
                               ✓
                             </span>
+
                             <div>
                               <strong>
-                                {displayCount(classroom.reviewed_count)}
+                                {displayCount(
+                                  classroom.reviewed_count
+                                )}
                               </strong>
                               <span>Reviewed</span>
                             </div>
@@ -171,7 +210,9 @@ export default function ClassroomsPage() {
                             {percentage !== null && (
                               <div
                                 className="progress-fill"
-                                style={{ width: `${percentage}%` }}
+                                style={{
+                                  width: `${percentage}%`,
+                                }}
                               />
                             )}
                           </div>

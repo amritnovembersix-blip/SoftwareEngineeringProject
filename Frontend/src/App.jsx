@@ -1,4 +1,3 @@
-
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -18,14 +17,17 @@ function MainApp() {
     <Layout>
       <Routes>
         <Route path="/" element={<ClassroomsPage />} />
+
         <Route
           path="/classrooms/:classroomId"
           element={<StudentsPage />}
         />
+
         <Route
           path="/classrooms/:classroomId/students/:studentId"
           element={<FindingsPage />}
         />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
@@ -37,7 +39,6 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Temporary local development preview */}
       <Route
         path="/dev/classrooms"
         element={
