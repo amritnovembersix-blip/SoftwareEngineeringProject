@@ -4,13 +4,76 @@ FastAPI service between the frontend and everything else. The frontend calls onl
 backend reads the shared Postgres (schema in `AgenticAI/db/migrations`) and calls the agentic
 service (`AgenticAI/`) to start reviews.
 
-## Run locally
+## All endpoints
+
+Every endpoint except `/health` and `/auth/login` needs `Authorization: Bearer <token>`. A teacher
+sees only their own classes and students; an admin sees everything (see *Who can see what*).
+
+| Method | Path | What it's for | Section |
+|---|---|---|---|
+| GET | `/health` | Is the backend able to work (database, agentic service) | When something is down |
+| POST | `/auth/login` | Log in, get a token | Login |
+| GET | `/auth/me` | Who is logged in | Login |
+| GET | `/dashboard` | Home page: a card per class, plus totals | Dashboard and notifications |
+| GET | `/notifications` | The bell: what needs attention now | Dashboard and notifications |
+| GET | `/classrooms` | The teacher's classes | (below) |
+| GET | `/classrooms/{id}/students` | Students in a class, with their latest review | (below) |
+| POST | `/classrooms/{id}/reviews` | Start "Review class" | Review class progress |
+| GET | `/reviews/{run_id}` | Progress of a class review | Review class progress |
+| GET | `/students/{id}/findings` | What the AI found, with confidence and the teacher's answer | Findings, strengths and teacher answers |
+| GET | `/students/{id}/strengths` | What the student did well | Findings, strengths and teacher answers |
+| POST | `/findings/{id}/responses` | Agree, disagree or dismiss a finding | Findings, strengths and teacher answers |
+| GET | `/students/{id}/concepts` | Status on every skill (FR6) | Student skill status (FR6) |
+| GET | `/students/{id}/concept-history` | Each skill's level over time | Student skill status (FR6) |
+| GET | `/classrooms/{id}/peer-pairs` | Suggested peer tutoring pairs (FR7) | Peer tutoring pairs (FR7) |
+| PATCH | `/peer-pairs/{id}` | Approve or reject a pair | Peer tutoring pairs (FR7) |
+| GET | `/classrooms/{id}/concept-weeks` | Heatmap: skills × weeks | Class views |
+| GET | `/classrooms/{id}/reteach-groups` | Students who share a root gap | Class views |
+| GET | `/comparison?classrooms=a,b` | Two classes side by side | Class views |
+
+`tests/test_readme.py` fails if an endpoint is added without a row here.
+
+## Set up from scratch
+
+Run these from the repo root. They match what CI does (`.github/workflows/ci.yml`).
+
+**1. Database.** Postgres with pgvector, user `sass` / password `change-me`, database `sass`.
+Apply Justin's migrations in order, then the backend's own table:
+
+```bash
+for f in $(ls AgenticAI/db/migrations/V*.sql | sort -V); do
+  psql -h localhost -U sass -d sass -v ON_ERROR_STOP=1 -f "$f"
+done
+psql -h localhost -U sass -d sass -v ON_ERROR_STOP=1 -f Backend/migrations/001_app_user.sql
+```
+
+("already exists" errors only mean a migration was applied before.)
+
+**2. Demo data** (no API key needed):
+
+```bash
+pip install -e "AgenticAI[dev]" -e "AgenticLab[dev]" -e "Backend[dev]"
+python -m agentic seed-demo --classroom 1.01   # the MVP class: 20 students, not reviewed yet
+python -m agentic_lab fill-demo                # English 9 Period 1 and 2: 18 students each,
+                                               # 11 weeks of reviews and Justin's analysis
+```
+
+`fill-demo` replaced `Backend/scripts/fill_demo_data.sh`, which was removed. To put the MVP class
+back to "not reviewed" after a demo: `cd AgenticAI && python -m agentic reset-reviews --classroom 1.01`.
+
+**3. Settings and accounts:**
 
 ```bash
 cd Backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
 cp .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(48))"   # paste as JWT_SECRET in .env
+python scripts/create_user.py --email admin@sass.test --name "Admin" --role admin
+python scripts/create_user.py --email teacher@sass.test --name "Ms. Rivera" --role teacher --teacher-id demo-teacher
+```
+
+**4. Run** (the agentic service on 8000 is only needed for "Review class"):
+
+```bash
 uvicorn app.main:app --reload --port 8001
 ```
 
@@ -21,17 +84,8 @@ Then open http://localhost:8001/health and http://localhost:8001/docs.
 Accounts live in the backend's own `app_user` table (the LMS `teacher` table has no passwords).
 A **teacher** account is linked to a `teacher` row; an **admin** account is not.
 
-One-time setup, after AgenticAI's migrations:
-
-```bash
-psql "postgresql://sass:change-me@localhost:5432/sass" -v ON_ERROR_STOP=1 -f migrations/001_app_user.sql
-python -c "import secrets; print(secrets.token_urlsafe(48))"   # paste as JWT_SECRET in .env
-python scripts/create_user.py --email admin@sass.test --name "Admin" --role admin
-python scripts/create_user.py --email teacher@sass.test --name "Ms. Rivera" --role teacher --teacher-id <id>
-```
-
-`create_user.py` asks for the password and stores only a bcrypt hash. Teacher ids:
-`psql "$DATABASE_URL" -c "SELECT id, name FROM teacher;"`
+Create accounts with `scripts/create_user.py` (see *Set up from scratch*). It asks for the password
+and stores only a bcrypt hash. Teacher ids: `psql "$DATABASE_URL" -c "SELECT id, name FROM teacher;"`
 
 | Endpoint | What it does |
 |---|---|
@@ -123,8 +177,13 @@ It returns 200 for `ok` and `degraded` (agentic down, pages still work) and 503 
 ## Test
 
 ```bash
+cd Backend
 pytest -q
 ```
+
+A run counts only with **0 failed and 0 skipped**. Tests that need data skip with a reason
+(`pytest -rs` shows it) when the database or the demo data is missing: do steps 1 and 2 above.
+Ordinary tests run as a test admin (`tests/conftest.py`); login and access tests send real tokens.
 
 ## Docker
 
@@ -140,9 +199,13 @@ app/
   main.py        # creates the app, CORS, includes routers
   config.py      # settings from env / .env
   auth.py        # password hashing, login tokens, current_user / require_admin
-  routers/       # one file per area (health, auth, classrooms, findings, reviews ...)
+  access.py      # who may see which classroom and student
+  db.py          # query / execute with time limits; DatabaseUnavailable -> 503
+  agentic_client.py  # the only code that calls the agentic service
+  routers/       # one file per area: health, auth, classrooms, findings, concepts,
+                 # peer_pairs, dashboard, class_views, reviews
 migrations/      # the backend's own tables (app_user)
-scripts/         # fill_demo_data.sh, create_user.py
+scripts/         # create_user.py
 tests/
 ```
 
