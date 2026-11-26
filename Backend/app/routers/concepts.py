@@ -4,14 +4,14 @@ Justin's analysis writes the status (`concept_status_latest`); the backend only 
 SASS doesn't grade, so nothing here is a score or a percentage: a status, a support level
 (0 Meets, 1 Approaching, 2 Developing, 3 Beginning), an evidence count such as "2/3", and a trend.
 
-A concept is a standard code without its last lowercase letter: 3.L.1.A.e and 3.L.1.A.g are both
-part of concept 3.L.1.A. The same skill appears at several grades (6.W.3.A, 7.W.3.A, ... 9-10.W.3.A),
+A concept is the first four segments of a standard code (`concept_of` in the analysis): 3.L.1.A.e
+and 3.L.1.A.g are both part of concept 3.L.1.A. The same skill appears at several grades (6.W.3.A, 7.W.3.A, ... 9-10.W.3.A),
 so each concept also gets a `skill_code` without the grade (W.3.A) for grouping it once.
 """
 from fastapi import APIRouter, Depends, Query
 
 from app import db
-from app.access import require_student
+from app.access import own_classrooms, require_student
 from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["students"])
@@ -27,7 +27,7 @@ STATUS_LABELS = {
 # A verdict's support level as a number, the same scale the analysis uses (0 = meets the standard).
 _LEVEL_SQL = """CASE v.support_level WHEN 'beginning' THEN 3 WHEN 'developing' THEN 2
                                      WHEN 'approaching' THEN 1 ELSE 0 END"""
-_CONCEPT_OF = r"regexp_replace(st.code, '\.[a-z]$', '')"
+_CONCEPT_OF = "array_to_string((string_to_array(st.code, '.'))[1:4], '.')"  # first four segments, like the analysis
 _SKILL_OF = r"regexp_replace({col}, '^[0-9]+(-[0-9]+)?\.', '')"
 
 
@@ -54,6 +54,7 @@ def student_concepts(
     last 3 pieces of work.
     """
     require_student(user, student_id)
+    scope, scope_params = own_classrooms(user, "c.classroom_id")
     rows = db.query(f"""
         SELECT c.classroom_id, c.concept_code,
                {_SKILL_OF.format(col='c.concept_code')} AS skill_code,
@@ -67,8 +68,8 @@ def student_concepts(
             WHERE st.code = c.concept_code OR st.code LIKE c.concept_code || '.%%'
             ORDER BY st.code LIMIT 1
         ) meta ON true
-        WHERE c.student_id = %s AND (%s::text IS NULL OR c.classroom_id = %s)
-    """, (student_id, classroom_id, classroom_id))
+        WHERE c.student_id = %s AND (%s::text IS NULL OR c.classroom_id = %s) AND {scope}
+    """, (student_id, classroom_id, classroom_id, *scope_params))
     levels = _level_labels()
     for r in rows:
         r["status_label"] = STATUS_LABELS.get(r["status"], r["status"])
@@ -91,29 +92,53 @@ def student_concept_history(
     classroom_id: str | None = Query(None, description="Only this classroom"),
     user: CurrentUser = Depends(current_user),
 ) -> list[dict]:
-    """For each concept, the support level on every reviewed piece of work, oldest first, with
-    the week it falls in (weeks start on Monday, like the class heatmap). For the progress chart.
+    """For each concept, the support level on every reviewed piece of work, ordered by due date,
+    with the week it falls in (the due date's Monday in America/Chicago, like the class heatmap).
+    For the progress chart.
 
     A piece of work's level for a concept is its weakest level across that concept's standards,
-    ignoring standards marked "not evident". This is the same series the analysis stores as
-    `points`, so the chart and the status always agree.
+    ignoring standards marked "not evident", with the same rules as the analysis: only the attempt
+    that counts, only work due by the analysis's `as_of`, a growth area the teacher's latest answer
+    disagreed with or dismissed counts as meets, and a "meets" implied by meeting a higher grade is
+    left out. This is the same series the analysis stores as `points`, so the chart and the status
+    always agree.
     """
     require_student(user, student_id)
+    scope, scope_params = own_classrooms(user, "a.classroom_id")
     rows = db.query(f"""
+        WITH asof AS (  -- the analysis's cutoff, so the chart shows exactly the points behind the status
+            SELECT classroom_id, max(as_of) AS as_of FROM concept_status_latest
+            WHERE student_id = %s GROUP BY classroom_id)
         SELECT a.classroom_id, {_CONCEPT_OF} AS concept_code,
                s.lms_submission_id AS submission_id, a.id AS assignment_id, a.title AS assignment_title,
-               s.submitted_at, date_trunc('week', s.submitted_at)::date AS week_start,
-               MAX({_LEVEL_SQL}) AS level
+               s.submitted_at,
+               date_trunc('week', COALESCE(a.due_at, s.submitted_at) AT TIME ZONE 'America/Chicago')::date
+                   AS week_start,
+               -- a growth area a teacher disagreed with or dismissed counts as meets (0), like the analysis
+               COALESCE(MAX(CASE WHEN v.verdict = 'growth_area' AND NOT COALESCE(f.overruled, false)
+                                 THEN {_LEVEL_SQL} END), 0) AS level
         FROM verdict v
         JOIN submission s ON s.id = v.submission_id
         JOIN assignment a ON a.id = s.assignment_id
         JOIN standard st  ON st.id = v.standard_id
-        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND v.verdict <> 'not_evident'
+        JOIN asof         ON asof.classroom_id = a.classroom_id
+        LEFT JOIN LATERAL (
+            -- the teacher's latest answer counts: disagree or dismiss overrules, a later agree restores
+            SELECT (SELECT t.stance IN ('disagree', 'dismiss') FROM teacher_response t
+                    WHERE t.finding_id = f.id ORDER BY t.responded_at DESC, t.id DESC LIMIT 1) AS overruled
+            FROM finding f JOIN finding_standard fs ON fs.finding_id = f.id AND fs.standard_id = v.standard_id
+            WHERE f.submission_id = s.id ORDER BY f.id LIMIT 1
+        ) f ON true
+        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND s.superseded_at IS NULL
+          AND COALESCE(a.due_at, s.submitted_at) <= asof.as_of
+          -- "meets" implied by meeting a higher grade: nothing was observed at this grade
+          AND NOT (v.verdict = 'meets' AND v.working_grade IS NOT NULL AND st.grade_min < v.working_grade)
           AND (%s::text IS NULL OR a.classroom_id = %s)
+          AND {scope}
         GROUP BY a.classroom_id, concept_code, s.id, a.id
-        HAVING (%s::text IS NULL OR {_CONCEPT_OF} = %s)
-        ORDER BY concept_code, s.submitted_at, s.id
-    """, (student_id, classroom_id, classroom_id, concept_code, concept_code))
+        HAVING bool_or(v.verdict <> 'not_evident') AND (%s::text IS NULL OR {_CONCEPT_OF} = %s)
+        ORDER BY concept_code, COALESCE(a.due_at, s.submitted_at), s.submitted_at, s.id::text
+    """, (student_id, student_id, classroom_id, classroom_id, *scope_params, concept_code, concept_code))
     levels = _level_labels()
     out: dict[tuple, dict] = {}
     for r in rows:
