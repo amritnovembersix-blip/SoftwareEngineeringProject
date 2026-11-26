@@ -46,7 +46,7 @@ def test_each_finding_has_support_level_and_confidence_from_the_review():
     sid = FINDING[0]["student_id"]
     expected = {str(r["id"]): r for r in _rows("""
         SELECT f.id, f.support_level, f.confidence FROM finding f JOIN submission s ON s.id = f.submission_id
-        WHERE s.student_id = %s AND s.review_status = 'succeeded'""", (sid,))}
+        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND s.superseded_at IS NULL""", (sid,))}
     body = client.get(f"/students/{sid}/findings").json()
     assert body
     for f in body:
@@ -55,7 +55,7 @@ def test_each_finding_has_support_level_and_confidence_from_the_review():
         assert f["support_level_label"] in {"Approaching", "Developing", "Beginning"}
         assert f["confidence"] == round(e["confidence"], 2)
         assert f["confidence_label"] == confidence_label(e["confidence"])
-        assert f["is_draft"] is True
+        assert f["is_draft"] is (f["teacher_response"] is None)   # a draft until the teacher answers
     text = str(body).lower()
     assert "percent" not in text and "%" not in text and "weakness" not in text
 
@@ -64,7 +64,8 @@ def test_each_finding_has_support_level_and_confidence_from_the_review():
 def test_strengths_match_the_review_and_filter_by_assignment():
     sid, aid = STRONG[0]["student_id"], STRONG[0]["assignment_id"]
     expected = _rows("""SELECT count(*) AS n FROM verdict v JOIN submission s ON s.id = v.submission_id
-                        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND v.notable_strength""", (sid,))
+                        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND s.superseded_at IS NULL
+                          AND v.notable_strength""", (sid,))
     every = client.get(f"/students/{sid}/strengths").json()
     assert len(every) == expected[0]["n"] > 0
     assert all(s["strength_note"] and s["standard_code"] for s in every)
@@ -130,11 +131,15 @@ def test_the_latest_answer_shows_on_the_finding(people):
     mine = next(f for f in findings if str(f["id"]) == str(FINDING[0]["id"]))
     assert mine["teacher_response"]["stance"] == "disagree"
     assert mine["teacher_response"]["reason"] == "The thesis is clear to me."
+    assert mine["is_draft"] is False                                     # answered, so no longer a draft
 
 
 @needs_data
 @pytest.mark.real_auth
-@pytest.mark.parametrize("body", [{"stance": "maybe"}, {}, {"stance": "agree", "reason": "x" * 501}])
+@pytest.mark.parametrize("body", [{"stance": "maybe"}, {}, {"stance": "agree", "reason": "x" * 501},
+                                  # disagree and dismiss need a reason ("dismiss with a reason")
+                                  {"stance": "disagree"}, {"stance": "dismiss"},
+                                  {"stance": "dismiss", "reason": "   "}, {"stance": "disagree", "reason": None}])
 def test_bad_answers_are_422_and_nothing_is_saved(people, body):
     assert client.post(_url(), json=body, headers=people["demo"]).status_code == 422
     assert _saved(FINDING[0]["id"]) == []
@@ -145,7 +150,8 @@ def test_bad_answers_are_422_and_nothing_is_saved(people, body):
 @pytest.mark.parametrize("who, code", [("other", 403), ("admin", 403), (None, 401)])
 def test_only_the_class_teacher_can_answer(people, who, code):
     headers = people[who] if who else {}
-    assert client.post(_url(), json={"stance": "dismiss"}, headers=headers).status_code == code
+    body = {"stance": "dismiss", "reason": "Not what this essay shows."}
+    assert client.post(_url(), json=body, headers=headers).status_code == code
     assert _saved(FINDING[0]["id"]) == []
 
 
@@ -154,3 +160,13 @@ def test_only_the_class_teacher_can_answer(people, who, code):
 @pytest.mark.parametrize("fid", [str(uuid.uuid4()), "not-a-uuid"])
 def test_unknown_finding_is_404(people, fid):
     assert client.post(f"/findings/{fid}/responses", json={"stance": "agree"}, headers=people["demo"]).status_code == 404
+
+
+@needs_data
+@pytest.mark.real_auth
+def test_dismiss_with_a_reason_is_saved(people):
+    r = client.post(_url(), json={"stance": "dismiss", "reason": "Quoted dialogue, not a run-on."},
+                    headers=people["demo"])
+    assert r.status_code == 201
+    assert r.json()["reason"] == "Quoted dialogue, not a run-on."
+    assert [s["stance"] for s in _saved(FINDING[0]["id"])] == ["dismiss"]
