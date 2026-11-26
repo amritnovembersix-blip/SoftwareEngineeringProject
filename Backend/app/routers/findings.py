@@ -44,7 +44,7 @@ def student_findings(
         JOIN standard st         ON st.id = fs.standard_id
         LEFT JOIN finding_observation fo ON fo.finding_id = f.id
         LEFT JOIN observation o  ON o.id = fo.observation_id
-        WHERE s.student_id = %s AND s.review_status = 'succeeded'
+        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND s.superseded_at IS NULL
           AND (%s::text IS NULL OR a.id = %s)
         GROUP BY f.id, st.id, s.id, a.id
         ORDER BY s.submitted_at DESC, st.code
