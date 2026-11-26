@@ -144,3 +144,31 @@ def test_a_disabled_account_loses_access_at_once(world):
     assert client.get("/classrooms", headers=h).status_code == 200
     db.execute("UPDATE app_user SET is_active = false WHERE id = %s", (uid,))
     assert client.get("/classrooms", headers=h).status_code == 401
+
+
+def test_a_shared_student_shows_each_teacher_only_their_own_class(world):
+    """A student in the demo teacher's class and the other teacher's class: the other teacher gets in
+    (the student is in one of their classes) but sees none of the work from the demo teacher's class."""
+    t = world["tokens"]
+    shared = db.query("""SELECT s.student_id FROM submission s JOIN assignment a ON a.id = s.assignment_id
+                         JOIN classroom c ON c.id = a.classroom_id JOIN finding f ON f.submission_id = s.id
+                         WHERE c.teacher_id = 'demo-teacher' AND s.review_status = 'succeeded'
+                           AND s.superseded_at IS NULL
+                         LIMIT 1""")
+    if not shared:
+        pytest.skip("needs reviewed demo work (fill-demo)")
+    s = shared[0]["student_id"]
+    db.execute("INSERT INTO enrollment (classroom_id, student_id, start_date) VALUES (%s, %s, CURRENT_DATE)",
+               (OTHER_CLASS, s))
+    try:
+        for path in (f"/students/{s}/findings", f"/students/{s}/concept-history"):
+            r = client.get(path, headers=t["other"])
+            assert r.status_code == 200, path
+            assert r.json() == [], path
+        concepts = client.get(f"/students/{s}/concepts", headers=t["other"]).json()
+        assert concepts["concepts"] == []
+        # the demo teacher and the admin still see the work from the demo class
+        assert client.get(f"/students/{s}/findings", headers=t["demo"]).json()
+        assert client.get(f"/students/{s}/findings", headers=t["admin"]).json()
+    finally:
+        db.execute("DELETE FROM enrollment WHERE classroom_id = %s AND student_id = %s", (OTHER_CLASS, s))

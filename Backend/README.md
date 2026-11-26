@@ -161,9 +161,9 @@ can remember the `id`s it has shown.
 
 | Endpoint | What it does |
 |---|---|
-| `GET /students/{id}/findings` | Each finding now also has `support_level` (+`support_level_label`: Approaching, Developing, Beginning), `confidence` (0–1) with `confidence_label` (High ≥ 0.8, Medium ≥ 0.7, Low), `pattern`, `skill_state`, `is_draft: true`, and `teacher_response` (the latest answer: `stance`, `stance_label`, `reason`, `responded_at`, or `null`) |
+| `GET /students/{id}/findings` | Each finding now also has `support_level` (+`support_level_label`: Approaching, Developing, Beginning), `confidence` (0–1) with `confidence_label` (High ≥ 0.8, Medium ≥ 0.7, Low), `pattern`, `skill_state`, `is_draft` (`true` until the teacher answers it), and `teacher_response` (the latest answer: `stance`, `stance_label`, `reason`, `responded_at`, or `null`) |
 | `GET /students/{id}/strengths` | What the student did well: standards marked as a notable strength, with `strength_note` and assignment, newest first. Optional `?assignment_id=` |
-| `POST /findings/{id}/responses` | Body `{"stance": "agree" \| "disagree" \| "dismiss", "reason": "optional, ≤ 500 chars"}`. **201** with the saved answer. Only the class's teacher: **403** for another teacher or an admin, **404** unknown finding, **422** bad stance |
+| `POST /findings/{id}/responses` | Body `{"stance": "agree" \| "disagree" \| "dismiss", "reason": "≤ 500 chars"}`. `reason` is **required** for disagree and dismiss, optional for agree. **201** with the saved answer. Only the class's teacher: **403** for another teacher or an admin, **404** unknown finding, **422** bad stance or a missing/blank reason |
 
 Findings never change. Each answer is a new `teacher_response` row and the latest one counts; Justin's
 next analysis treats a disagreed or dismissed finding as "meets". Show confidence as the word, never as
