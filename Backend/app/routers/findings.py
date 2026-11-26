@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from app import db
-from app.access import require_student
+from app.access import own_classrooms, require_student
 from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["findings"])
@@ -21,7 +21,8 @@ def student_findings(
     The essay text is never stored, so it is never returned: only the AI's short reasons.
     """
     require_student(user, student_id)
-    return db.query("""
+    scope, scope_params = own_classrooms(user, "a.classroom_id")
+    return db.query(f"""
         SELECT f.id,
                f.summary,
                st.code        AS standard_code,
@@ -44,8 +45,9 @@ def student_findings(
         JOIN standard st         ON st.id = fs.standard_id
         LEFT JOIN finding_observation fo ON fo.finding_id = f.id
         LEFT JOIN observation o  ON o.id = fo.observation_id
-        WHERE s.student_id = %s AND s.review_status = 'succeeded'
+        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND s.superseded_at IS NULL
           AND (%s::text IS NULL OR a.id = %s)
+          AND {scope}
         GROUP BY f.id, st.id, s.id, a.id
         ORDER BY s.submitted_at DESC, st.code
-    """, (student_id, assignment_id, assignment_id))
+    """, (student_id, assignment_id, assignment_id, *scope_params))
