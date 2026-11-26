@@ -24,6 +24,18 @@ def classroom_filter(user: CurrentUser) -> tuple[str, tuple]:
     return "c.teacher_id = %s", (user.teacher_id,)
 
 
+def own_classrooms(user: CurrentUser, column: str) -> tuple[str, tuple]:
+    """A SQL condition limiting `column` (a classroom id, e.g. `a.classroom_id`) to the user's classes.
+
+    `require_student` lets a teacher in if the student is in any of their classes, but a student can
+    also be in another teacher's class. Every query of a student's data adds this condition, so a
+    shared student shows each teacher only their own class's work (FERPA). Admins see everything.
+    """
+    if user.is_admin:
+        return "true", ()
+    return f"{column} IN (SELECT id FROM classroom WHERE teacher_id = %s)", (user.teacher_id,)
+
+
 def require_classroom(user: CurrentUser, classroom_id: str) -> None:
     """404 if the classroom doesn't exist, 403 if it isn't this teacher's."""
     rows = db.query("SELECT teacher_id FROM classroom WHERE id = %s", (classroom_id,))
