@@ -11,7 +11,7 @@ so each concept also gets a `skill_code` without the grade (W.3.A) for grouping 
 from fastapi import APIRouter, Depends, Query
 
 from app import db
-from app.access import require_student
+from app.access import own_classrooms, require_student
 from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["students"])
@@ -54,6 +54,7 @@ def student_concepts(
     last 3 pieces of work.
     """
     require_student(user, student_id)
+    scope, scope_params = own_classrooms(user, "c.classroom_id")
     rows = db.query(f"""
         SELECT c.classroom_id, c.concept_code,
                {_SKILL_OF.format(col='c.concept_code')} AS skill_code,
@@ -67,8 +68,8 @@ def student_concepts(
             WHERE st.code = c.concept_code OR st.code LIKE c.concept_code || '.%%'
             ORDER BY st.code LIMIT 1
         ) meta ON true
-        WHERE c.student_id = %s AND (%s::text IS NULL OR c.classroom_id = %s)
-    """, (student_id, classroom_id, classroom_id))
+        WHERE c.student_id = %s AND (%s::text IS NULL OR c.classroom_id = %s) AND {scope}
+    """, (student_id, classroom_id, classroom_id, *scope_params))
     levels = _level_labels()
     for r in rows:
         r["status_label"] = STATUS_LABELS.get(r["status"], r["status"])
@@ -103,6 +104,7 @@ def student_concept_history(
     always agree.
     """
     require_student(user, student_id)
+    scope, scope_params = own_classrooms(user, "a.classroom_id")
     rows = db.query(f"""
         WITH asof AS (  -- the analysis's cutoff, so the chart shows exactly the points behind the status
             SELECT classroom_id, max(as_of) AS as_of FROM concept_status_latest
@@ -132,10 +134,11 @@ def student_concept_history(
           -- "meets" implied by meeting a higher grade: nothing was observed at this grade
           AND NOT (v.verdict = 'meets' AND v.working_grade IS NOT NULL AND st.grade_min < v.working_grade)
           AND (%s::text IS NULL OR a.classroom_id = %s)
+          AND {scope}
         GROUP BY a.classroom_id, concept_code, s.id, a.id
         HAVING bool_or(v.verdict <> 'not_evident') AND (%s::text IS NULL OR {_CONCEPT_OF} = %s)
         ORDER BY concept_code, COALESCE(a.due_at, s.submitted_at), s.submitted_at, s.id::text
-    """, (student_id, student_id, classroom_id, classroom_id, concept_code, concept_code))
+    """, (student_id, student_id, classroom_id, classroom_id, *scope_params, concept_code, concept_code))
     levels = _level_labels()
     out: dict[tuple, dict] = {}
     for r in rows:
