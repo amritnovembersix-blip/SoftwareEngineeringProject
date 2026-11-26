@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from app import db
-from app.access import require_classroom, require_student
+from app.access import own_classrooms, require_classroom, require_student
 from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["findings"])
@@ -50,7 +50,8 @@ def student_findings(
     The essay text is never stored, so it is never returned: only the AI's short reasons.
     """
     require_student(user, student_id)
-    rows = db.query("""
+    scope, scope_params = own_classrooms(user, "a.classroom_id")
+    rows = db.query(f"""
         SELECT f.id,
                f.summary,
                f.support_level,
@@ -84,11 +85,12 @@ def student_findings(
             SELECT r.stance, r.reason, r.responded_at FROM teacher_response r
             WHERE r.finding_id = f.id ORDER BY r.responded_at DESC LIMIT 1
         ) tr ON true
-        WHERE s.student_id = %s AND s.review_status = 'succeeded'
+        WHERE s.student_id = %s AND s.review_status = 'succeeded' AND s.superseded_at IS NULL
           AND (%s::text IS NULL OR a.id = %s)
+          AND {scope}
         GROUP BY f.id, st.id, s.id, a.id, tr.stance, tr.reason, tr.responded_at
         ORDER BY s.submitted_at DESC, st.code
-    """, (student_id, assignment_id, assignment_id))
+    """, (student_id, assignment_id, assignment_id, *scope_params))
     for r in rows:
         r["support_level_label"] = SUPPORT_LABELS.get(r["support_level"])
         r["confidence"] = _round(r["confidence"])
@@ -115,7 +117,8 @@ def student_strengths(
     """What the student did well: standards the reviewer marked as a notable strength, with its
     short note, newest assignment first. Strengths live in `verdict`, never in `finding`."""
     require_student(user, student_id)
-    rows = db.query("""
+    scope, scope_params = own_classrooms(user, "a.classroom_id")
+    rows = db.query(f"""
         SELECT st.code AS standard_code, st.strand, st.concept, st.description AS standard_description,
                v.strength_note, v.confidence,
                s.lms_submission_id AS submission_id, a.id AS assignment_id, a.title AS assignment_title,
@@ -126,8 +129,9 @@ def student_strengths(
         JOIN standard st  ON st.id = v.standard_id
         WHERE s.student_id = %s AND s.review_status = 'succeeded' AND v.notable_strength
           AND (%s::text IS NULL OR a.id = %s)
+          AND {scope}
         ORDER BY s.submitted_at DESC, st.code
-    """, (student_id, assignment_id, assignment_id))
+    """, (student_id, assignment_id, assignment_id, *scope_params))
     for r in rows:
         r["confidence"] = _round(r["confidence"])
         r["confidence_label"] = confidence_label(r["confidence"])
