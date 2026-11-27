@@ -1,13 +1,22 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CodeTag, EmptyState, StatCard, Status, StudentLink, classPath } from "../../components/ui.jsx";
 import { summarizeConcepts } from "./summarize.js";
 
 const TOP_GAPS = 5;
+const SKILLS_SHOWN = 6; // per student, before "+N more"
 
 // The class landing page: "what do I reteach, and to whom?"
 export default function OverviewTab({ ctx }) {
   const { classroomId, classroom, concepts } = ctx;
+  const [expanded, setExpanded] = useState(() => new Set()); // students whose full skill list is open
+  const toggleExpanded = (id) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const summary = useMemo(
     () => (concepts.byStudent ? summarizeConcepts(concepts.byStudent) : null),
     [concepts.byStudent]
@@ -114,24 +123,37 @@ export default function OverviewTab({ ctx }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {summary.studentsNeedingAttention.map((s) => (
-                          <tr key={s.student_id}>
-                            <td>
-                              <StudentLink classroomId={classroomId} studentId={s.student_id} />
-                            </td>
-                            <td className="num">{s.concepts.length}</td>
-                            <td>
-                              <div className="code-row">
-                                {s.concepts.slice(0, 6).map((c) => (
-                                  <CodeTag key={c.concept_code} title={c.concept_name}>
-                                    {c.concept_code}
-                                  </CodeTag>
-                                ))}
-                                {s.concepts.length > 6 && <span className="muted small">+{s.concepts.length - 6} more</span>}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {summary.studentsNeedingAttention.map((s) => {
+                          const open = expanded.has(s.student_id);
+                          const extra = s.concepts.length - SKILLS_SHOWN;
+                          return (
+                            <tr key={s.student_id}>
+                              <td>
+                                <StudentLink classroomId={classroomId} studentId={s.student_id} />
+                              </td>
+                              <td className="num">{s.concepts.length}</td>
+                              <td>
+                                <div className="code-row">
+                                  {(open ? s.concepts : s.concepts.slice(0, SKILLS_SHOWN)).map((c) => (
+                                    <CodeTag key={c.concept_code} title={c.concept_name}>
+                                      {c.concept_code}
+                                    </CodeTag>
+                                  ))}
+                                  {extra > 0 && (
+                                    <button
+                                      type="button"
+                                      className="btn-link-inline small"
+                                      aria-expanded={open}
+                                      onClick={() => toggleExpanded(s.student_id)}
+                                    >
+                                      {open ? "Show less" : `+${extra} more`}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
