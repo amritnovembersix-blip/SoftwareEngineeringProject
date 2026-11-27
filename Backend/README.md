@@ -41,6 +41,16 @@ python scripts/create_user.py --email teacher@sass.test --name "Ms. Rivera" --ro
 To protect an endpoint, add `user: CurrentUser = Depends(current_user)` (or `Depends(require_admin)`)
 from `app.auth`.
 
+## Student skill status (FR6)
+
+| Endpoint | What it returns |
+|---|---|
+| `GET /students/{id}/concepts` | `{student_id, as_of, summary, concepts}`: the latest status per concept, most urgent first. Each concept has `status` (+`status_label`), `current_level` 0–3 (+`level_label`: Meets, Approaching, Developing, Beginning), `basis` (e.g. `2/3`), `trend`, `strand`, `concept_name`, and `skill_code` (the code without its grade, to group 7.W.3.A and 9-10.W.3.A once). `summary` counts concepts per status. Optional `?classroom_id=` |
+| `GET /students/{id}/concept-history` | One entry per concept with `points`: the level on each reviewed piece of work, oldest first, with its assignment and `week_start` (Monday). Same series as the analysis, so the chart matches the status. Optional `?concept_code=`, `?classroom_id=` |
+
+No percentages or scores: SASS doesn't grade. `needs_attention` means Developing or Beginning on at
+least 2 of the last 3 pieces of work.
+
 ## When something is down
 
 | Situation | What the API returns |
