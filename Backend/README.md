@@ -38,8 +38,22 @@ python scripts/create_user.py --email teacher@sass.test --name "Ms. Rivera" --ro
 | `POST /auth/login` | `{"email", "password"}` → `{"access_token", "token_type": "bearer", "expires_in", "user"}`; wrong email or password → 401 |
 | `GET /auth/me` | The logged-in user. Send `Authorization: Bearer <token>`; missing, invalid or expired token → 401 |
 
-To protect an endpoint, add `user: CurrentUser = Depends(current_user)` (or `Depends(require_admin)`)
-from `app.auth`.
+### Who can see what
+
+Every data endpoint needs `Authorization: Bearer <token>`; only `/health`, `/auth/login` and
+`/docs` are open. Without a valid token: **401**.
+
+- An **admin** sees every classroom and student.
+- A **teacher** sees only the classrooms they teach and the students enrolled in them. Another
+  teacher's classroom or student: **403**. Something that doesn't exist: **404** (checked first).
+- `GET /classrooms` lists only the teacher's own classrooms.
+- Disabling an account (`is_active = false`) takes effect on the next request.
+
+To protect a new endpoint, add `user: CurrentUser = Depends(current_user)` (or `Depends(require_admin)`)
+and call `require_classroom(user, id)` / `require_student(user, id)` from `app.access`.
+
+In tests, `tests/conftest.py` logs every request in as a test admin. Tests about login and access
+use `pytestmark = pytest.mark.real_auth` and send real tokens (`tests/test_access.py`).
 
 ## Student skill status (FR6)
 

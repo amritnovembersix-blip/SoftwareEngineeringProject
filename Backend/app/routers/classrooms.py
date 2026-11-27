@@ -3,9 +3,11 @@
 Who is in a class comes from `enrollment`. A `submission` row only exists once an essay has been
 reviewed, so it is joined in for review status and finding counts, never used to list students.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends
 
 from app import db
+from app.access import classroom_filter, require_classroom
+from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["classrooms"])
 
@@ -14,10 +16,11 @@ _ACTIVE = "(e.end_date IS NULL OR e.end_date >= CURRENT_DATE)"
 
 
 @router.get("/classrooms")
-def list_classrooms() -> list[dict]:
+def list_classrooms(user: CurrentUser = Depends(current_user)) -> list[dict]:
     """Every classroom, with how many students are enrolled and how many of them have at least one
     reviewed submission. (Counting submissions instead went over the class size once a class
-    had more than one assignment: 252 "reviewed" in a class of 18.)"""
+    had more than one assignment: 252 "reviewed" in a class of 18.) A teacher sees only their own."""
+    where, params = classroom_filter(user)
     return db.query(f"""
         SELECT c.id, c.name, c.grade_level, c.subject,
                (SELECT COUNT(*) FROM enrollment e
@@ -29,16 +32,16 @@ def list_classrooms() -> list[dict]:
                                 WHERE a.classroom_id = c.id AND s.student_id = e.student_id
                                   AND s.review_status = 'succeeded')) AS reviewed_count
         FROM classroom c
+        WHERE {where}
         ORDER BY c.name
-    """)
+    """, params)
 
 
 @router.get("/classrooms/{classroom_id}/students")
-def list_students(classroom_id: str) -> list[dict]:
+def list_students(classroom_id: str, user: CurrentUser = Depends(current_user)) -> list[dict]:
     """Every student enrolled in this classroom. Students whose essay hasn't been reviewed yet are
     listed too, with review_status "not_reviewed" and 0 findings."""
-    if not db.query("SELECT 1 FROM classroom WHERE id = %s", (classroom_id,)):
-        raise HTTPException(status_code=404, detail="classroom not found")
+    require_classroom(user, classroom_id)
     return db.query(f"""
         SELECT e.student_id,
                s.lms_submission_id AS submission_id,

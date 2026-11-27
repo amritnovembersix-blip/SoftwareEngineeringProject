@@ -8,9 +8,11 @@ A concept is the first four segments of a standard code (`concept_of` in the ana
 and 3.L.1.A.g are both part of concept 3.L.1.A. The same skill appears at several grades (6.W.3.A, 7.W.3.A, ... 9-10.W.3.A),
 so each concept also gets a `skill_code` without the grade (W.3.A) for grouping it once.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from app import db
+from app.access import own_classrooms, require_student
+from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["students"])
 
@@ -39,15 +41,11 @@ def _level_labels() -> dict[int, str]:
             2: rows.get("developing", "Developing"), 3: rows.get("beginning", "Beginning")}
 
 
-def _require_student(student_id: str) -> None:
-    if not db.query("SELECT 1 FROM student WHERE id = %s", (student_id,)):
-        raise HTTPException(status_code=404, detail="student not found")
-
-
 @router.get("/students/{student_id}/concepts")
 def student_concepts(
     student_id: str,
     classroom_id: str | None = Query(None, description="Only this classroom"),
+    user: CurrentUser = Depends(current_user),
 ) -> dict:
     """The student's latest status on every concept, most urgent first.
 
@@ -55,7 +53,8 @@ def student_concepts(
     `needs_attention` is the FR6 notification rule: Developing or Beginning on at least 2 of the
     last 3 pieces of work.
     """
-    _require_student(student_id)
+    require_student(user, student_id)
+    scope, scope_params = own_classrooms(user, "c.classroom_id")
     rows = db.query(f"""
         SELECT c.classroom_id, c.concept_code,
                {_SKILL_OF.format(col='c.concept_code')} AS skill_code,
@@ -69,8 +68,8 @@ def student_concepts(
             WHERE st.code = c.concept_code OR st.code LIKE c.concept_code || '.%%'
             ORDER BY st.code LIMIT 1
         ) meta ON true
-        WHERE c.student_id = %s AND (%s::text IS NULL OR c.classroom_id = %s)
-    """, (student_id, classroom_id, classroom_id))
+        WHERE c.student_id = %s AND (%s::text IS NULL OR c.classroom_id = %s) AND {scope}
+    """, (student_id, classroom_id, classroom_id, *scope_params))
     levels = _level_labels()
     for r in rows:
         r["status_label"] = STATUS_LABELS.get(r["status"], r["status"])
@@ -91,6 +90,7 @@ def student_concept_history(
     student_id: str,
     concept_code: str | None = Query(None, description="Only this concept, e.g. 9-10.W.3.A"),
     classroom_id: str | None = Query(None, description="Only this classroom"),
+    user: CurrentUser = Depends(current_user),
 ) -> list[dict]:
     """For each concept, the support level on every reviewed piece of work, ordered by due date,
     with the week it falls in (the due date's Monday in America/Chicago, like the class heatmap).
@@ -103,7 +103,8 @@ def student_concept_history(
     left out. This is the same series the analysis stores as `points`, so the chart and the status
     always agree.
     """
-    _require_student(student_id)
+    require_student(user, student_id)
+    scope, scope_params = own_classrooms(user, "a.classroom_id")
     rows = db.query(f"""
         WITH asof AS (  -- the analysis's cutoff, so the chart shows exactly the points behind the status
             SELECT classroom_id, max(as_of) AS as_of FROM concept_status_latest
@@ -133,10 +134,11 @@ def student_concept_history(
           -- "meets" implied by meeting a higher grade: nothing was observed at this grade
           AND NOT (v.verdict = 'meets' AND v.working_grade IS NOT NULL AND st.grade_min < v.working_grade)
           AND (%s::text IS NULL OR a.classroom_id = %s)
+          AND {scope}
         GROUP BY a.classroom_id, concept_code, s.id, a.id
         HAVING bool_or(v.verdict <> 'not_evident') AND (%s::text IS NULL OR {_CONCEPT_OF} = %s)
         ORDER BY concept_code, COALESCE(a.due_at, s.submitted_at), s.submitted_at, s.id::text
-    """, (student_id, student_id, classroom_id, classroom_id, concept_code, concept_code))
+    """, (student_id, student_id, classroom_id, classroom_id, *scope_params, concept_code, concept_code))
     levels = _level_labels()
     out: dict[tuple, dict] = {}
     for r in rows:

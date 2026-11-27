@@ -1,7 +1,9 @@
 """Screen 3: what the AI reviewer found in one student's essay."""
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from app import db
+from app.access import own_classrooms, require_student
+from app.auth import CurrentUser, current_user
 
 router = APIRouter(tags=["findings"])
 
@@ -10,6 +12,7 @@ router = APIRouter(tags=["findings"])
 def student_findings(
     student_id: str,
     assignment_id: str | None = Query(None, description="Only findings from this assignment"),
+    user: CurrentUser = Depends(current_user),
 ) -> list[dict]:
     """Each finding with its standard, its assignment and the paragraph-level evidence behind it.
 
@@ -17,9 +20,9 @@ def student_findings(
     Pass ?assignment_id= to get one assignment, e.g. the one shown on the students page.
     The essay text is never stored, so it is never returned: only the AI's short reasons.
     """
-    if not db.query("SELECT 1 FROM student WHERE id = %s", (student_id,)):
-        raise HTTPException(status_code=404, detail="student not found")
-    return db.query("""
+    require_student(user, student_id)
+    scope, scope_params = own_classrooms(user, "a.classroom_id")
+    return db.query(f"""
         SELECT f.id,
                f.summary,
                st.code        AS standard_code,
@@ -44,6 +47,7 @@ def student_findings(
         LEFT JOIN observation o  ON o.id = fo.observation_id
         WHERE s.student_id = %s AND s.review_status = 'succeeded' AND s.superseded_at IS NULL
           AND (%s::text IS NULL OR a.id = %s)
+          AND {scope}
         GROUP BY f.id, st.id, s.id, a.id
         ORDER BY s.submitted_at DESC, st.code
-    """, (student_id, assignment_id, assignment_id))
+    """, (student_id, assignment_id, assignment_id, *scope_params))
