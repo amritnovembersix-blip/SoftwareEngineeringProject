@@ -65,6 +65,16 @@ use `pytestmark = pytest.mark.real_auth` and send real tokens (`tests/test_acces
 No percentages or scores: SASS doesn't grade. `needs_attention` means Developing or Beginning on at
 least 2 of the last 3 pieces of work.
 
+## Peer tutoring pairs (FR7)
+
+| Endpoint | What it does |
+|---|---|
+| `GET /classrooms/{id}/peer-pairs` | `{classroom_id, pending, pairs}`: the pairs from the latest analysis, waiting ones first. Each pair has `pair_id`, `concept_code`, `skill_code`, `strand`, `concept_name`, `tutor` and `tutee` (`student_id`, `status`, `status_label`), `status` (`suggested`, `approved`, `rejected`) with `status_label`, `decided_by`, `decided_at`. `pending` counts the suggested ones. Optional `?status=` |
+| `PATCH /peer-pairs/{id}` | Body `{"status": "approved"}` or `{"status": "rejected"}`. Saves `decided_by` (the user's email) and `decided_at`, and returns the pair. **404** unknown pair, **403** another teacher's class, **409** already decided, **422** any other status |
+
+This is the backend's only write to Justin's tables (`peer_pair_suggestion`, as his handoff says).
+A decision survives later analyses: approving a pair and re-running `fill-demo` keeps it approved.
+
 ## When something is down
 
 | Situation | What the API returns |

@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.db import DatabaseUnavailable
-from app.routers import auth, classrooms, concepts, findings, health, reviews
+from app.routers import auth, classrooms, concepts, findings, health, peer_pairs, reviews
 
 
 def create_app() -> FastAPI:
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(classrooms.router)
     app.include_router(findings.router)
     app.include_router(concepts.router)
+    app.include_router(peer_pairs.router)
     app.include_router(reviews.router)
     return app
 
