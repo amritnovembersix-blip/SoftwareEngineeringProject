@@ -67,3 +67,23 @@ def test_in_memory_v2_standards_reads_the_catalog():
     assert codes and all(c.split(".")[0] in ("3", "4", "5") for c in codes)
     assert len(src.in_range(3, 12)) == 432
     assert all(s.strand for s in src.in_range(3, 12))
+
+
+from agentic.review.v2.scope import conditions_for  # noqa: E402
+
+COND = {"6+:W.3.A": ["a full essay"], "3-5:W.2.A": ["opinion"], "L.1.A": ["clauses"]}
+
+
+def test_conditions_for_prefers_the_band_key_for_the_codes_grade():
+    assert conditions_for(COND, "9-10.W.3.A.b") == ("6+:W.3.A", ["a full essay"])
+    assert conditions_for(COND, "4.W.2.A.a") == ("3-5:W.2.A", ["opinion"])
+
+
+def test_conditions_for_falls_back_to_the_plain_key():
+    assert conditions_for(COND, "3.L.1.A.c") == ("L.1.A", ["clauses"])
+    assert conditions_for(COND, "7.L.1.A.a") == ("L.1.A", ["clauses"])
+
+
+def test_conditions_for_never_uses_the_other_bands_key():
+    assert conditions_for(COND, "5.W.3.A.a") is None
+    assert conditions_for(COND, "8.W.2.A.a") is None

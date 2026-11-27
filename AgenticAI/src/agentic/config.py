@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal, get_args, get_origin
 
 from dotenv import dotenv_values
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # The agentic/ folder (AgenticAI/ in the team repo): everything this package needs lives under it.
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -36,6 +36,7 @@ class Settings(BaseModel):
     llm_model: str = ""
     llm_api_key: str = ""
     llm_rpm: int = 10
+    llm_timeout_s: int = Field(default=120, gt=0)  # per model call; a hung call fails instead of hanging a run
     llm_reasoning: Literal["default", "low", "medium", "high"] = "default"  # blank/default = no setting sent
 
     embedding_provider: str = "gemini"
@@ -57,7 +58,7 @@ class Settings(BaseModel):
     review_strands: str = ""  # e.g. "W,RL"; blank = use the classroom's assignment file
     retrieval_k: int = 3
     review_pipeline: Literal["mvp", "v2"] = "v2"  # "v2" = grade-band reviewers; "mvp" = the MVP graph
-    bands_profile: Literal["full", "lean", "graded"] = "graded"  # a profile in config/bands.toml
+    bands_profile: Literal["full", "lean", "graded", "supervised"] = "graded"  # a profile in config/bands.toml
     llm_tpm: int | None = None  # tokens per minute; blank = unlimited
     llm_rpd: int | None = None  # requests per day; blank = unlimited
 
@@ -67,6 +68,7 @@ class Settings(BaseModel):
     review_concurrency: int = 1  # reviews a sweep runs at once; raise with LLM_RPM on a paid model tier
     analysis_delay_s: float = 60.0  # quiet time after the last webhook review before the class analysis runs
 
+    db_statement_timeout_s: int = Field(default=60, gt=0)  # per Postgres statement
     database_url_local: str = "postgresql://sass:change-me@localhost:5432/sass"
     standards_file: Path = PACKAGE_ROOT / "standards" / "mls-ela-reviewable-v2.xlsx"
     data_dir: Path = PACKAGE_ROOT / "data"  # file-LMS data; the lab points this at its synthetic data

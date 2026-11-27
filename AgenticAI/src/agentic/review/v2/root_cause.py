@@ -9,7 +9,7 @@ from string import Template
 from agentic.llm.base import ChatModel, DailyQuotaExceeded, Usage
 from agentic.models import Dropped, Finding, FindingLink, StandardRef, Verdict, word_count
 from agentic.review.v2.schemas import RootCauseOut, RootDetail
-from agentic.review.v2.scope import group_of
+from agentic.review.v2.scope import conditions_for
 
 STAGE = "root_cause"
 MAX_RATIONALE_WORDS = 40
@@ -77,9 +77,9 @@ class RootCauseStep:
             return " | ".join([f"- {f.standard_code}", *([_standard_text(ref)] if ref else []), f.summary])
 
         listing = "\n".join(line(f) for f in part)
-        groups = sorted({group_of(f.standard_code) for f in part})
-        conditions = "\n".join(f"- {g}: {'; '.join(self._conditions[g])}"
-                               for g in groups if g in self._conditions)
+        # one line per matched key: a call can hold a group's 3-5 and 6+ codes, each with its own band's list
+        found = dict(hit for f in part if (hit := conditions_for(self._conditions, f.standard_code)))
+        conditions = "\n".join(f"- {key}: {'; '.join(items)}" for key, items in sorted(found.items()))
         cited = sorted({p for f in part for p in f.paragraphs if 1 <= p <= len(segments)})
         return self._template.substitute(
             standards=listing, conditions=conditions or "(none)", assignment="(none)",
@@ -125,7 +125,8 @@ class RootCauseStep:
                 drop("duplicate_detail")
                 continue
             condition, pattern, state = d.condition, d.pattern, d.skill_state
-            if condition is not None and condition not in self._conditions.get(group_of(code), []):
+            hit = conditions_for(self._conditions, code)
+            if condition is not None and condition not in (hit[1] if hit else []):
                 drop("unknown_condition")
                 condition = None
             if pattern is not None and pattern not in PATTERNS:

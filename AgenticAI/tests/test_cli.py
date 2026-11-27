@@ -446,6 +446,7 @@ def test_analyze_prints_counts_gaps_groups_and_pairs(analyze_env, capsys):
     assert main(["analyze", "--classroom", "1.01", "--as-of", "2026-12-31", "--no-save"]) == 0
     out = capsys.readouterr().out
     assert "needs_attention 3" in out and "secure 1" in out
+    assert "Trends: improving 0, declining 0, steady 1, unclear 3" in out
     assert f"{A_CONCEPT}: 3 students" in out and "with a prompt" in out
     assert f"7.W.3.A <- {A_CONCEPT}: 2 students" in out
     assert f"{A_CONCEPT}: cccc4444 -> " in out

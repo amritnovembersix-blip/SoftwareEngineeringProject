@@ -1,0 +1,16 @@
+# Where each skill is often tested: context for the reviewer, not a checklist (audit finding R5).
+# Keys are strand.bigIdea.concept. A "3-5:" or "6+:" prefix limits an entry to that band: W.1.A, W.2.A and W.3.A
+# mean different skills below and above grade 6 (finding R7). Lookup tries the band key, then the plain key.
+# Each entry is written against its concept's own lines (agentic/standards/mls-ela-reviewable-v2.xlsx).
+
+"L.1.A" = ["sentences with more than one clause", "verb tenses across a passage", "pronouns across a passage",
+           "relative pronouns and adverbs"]
+"L.1.B" = ["compound sentences joined by a conjunction", "introductory clauses", "titles of works",
+           "possessive nouns", "spelling of less common words"]
+"3-5:W.2.A" = ["stating an opinion with reasons", "an introduction and a conclusion", "transitions between reasons"]
+"6+:W.2.A" = ["developing a claim or idea at length", "choosing supporting details", "organizing a multi-paragraph piece"]
+"6+:W.3.A" = ["a full essay or multi-paragraph piece", "word choice and style across a piece",
+              "transitions between ideas"]
+"RL.1.A" = ["claims about a character or theme", "inferences from a passage", "choosing evidence from the text"]
+"RI.1.A" = ["claims about a nonfiction text", "inferences from a passage", "choosing evidence from the text"]
+"R.1.A" = ["answering a question about a passage", "conclusions drawn from the text", "explicit and inferred details"]

@@ -156,6 +156,48 @@ def test_is_reviewed(seeded):
     assert w.is_reviewed("sub-1", 1) and not w.is_reviewed("sub-1", 2)
 
 
+def _superseded(conn, sub="sub-1"):
+    return dict(conn.execute("SELECT attempt, superseded_at IS NOT NULL FROM submission "
+                             "WHERE lms_submission_id = %s", (sub,)).fetchall())
+
+
+def test_newer_attempt_supersedes_the_older_one(seeded):
+    """A resubmission (wrong paper, revised draft) replaces the old review in trends; the old rows stay."""
+    conn, _ = seeded
+    w = PostgresResultsWriter(conn)
+    w.save(_result(attempt=1))
+    assert _superseded(conn) == {1: False}
+    w.save(_result(attempt=2))
+    assert _superseded(conn) == {1: True, 2: False}
+    assert _n(conn, "finding", "submission_id IN (SELECT id FROM submission WHERE attempt = 1 "
+                               "AND lms_submission_id = 'sub-1')") == 2  # history kept, never deleted
+
+
+def test_older_attempt_saved_late_is_born_superseded(seeded):
+    conn, _ = seeded
+    w = PostgresResultsWriter(conn)
+    w.save(_result(attempt=2))
+    w.save(_result(attempt=1))
+    assert _superseded(conn) == {1: True, 2: False}
+
+
+def test_superseding_stays_within_one_submission(seeded):
+    conn, _ = seeded
+    w = PostgresResultsWriter(conn)
+    w.save(_result(sub="sub-1", attempt=1))
+    w.save(_result(sub="sub-9", attempt=2))
+    assert _superseded(conn, "sub-1") == {1: False}
+
+
+def test_failed_newer_attempt_supersedes_nothing(seeded):
+    conn, _ = seeded
+    w = PostgresResultsWriter(conn)
+    w.save(_result(attempt=1))
+    with pytest.raises(LookupError):
+        w.save(_result(codes=("t.1", "no.such.code"), attempt=2))
+    assert _superseded(conn) == {1: False}
+
+
 def test_reset_reviews_clears_one_classroom_only(seeded):
     from agentic.results.reset import reset_reviews
 

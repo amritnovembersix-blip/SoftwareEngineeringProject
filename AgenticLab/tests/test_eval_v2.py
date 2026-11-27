@@ -782,3 +782,152 @@ def test_by_student_is_in_the_json_report_and_not_in_the_markdown(data):
 def test_students_limit_takes_the_first_roster_students_in_roster_order(data):
     r = _run(data, students=1)
     assert list(r.growth.by_student) == [eval_v2.CourseDir(data, VERSION).roster()[0].student_hash]
+
+
+def test_flag_log_gets_every_reviewed_submission_with_its_planted_codes(data):
+    seen = []
+    _run(data, flag_log=lambda res, file_id, student, planted: seen.append((file_id, student, planted)))
+    assert len(seen) == 6
+    assert ("ela9v2-a01", A1, {"9-10.RL.1.A": 2, "9-10.W.3.A.c": 1}) in seen
+    assert ("ela9v2-a01", B2, {}) in seen
+
+
+def test_persist_saves_each_submission_once_even_with_repeats(data):
+    saved = []
+    _run(data, repeat=2, persist=saved.append)
+    assert len(saved) == 6  # one per reviewed submission, never the repeat
+
+
+# ---- review supervisor (Task 6): scores by stage, baseline from a flag log, chain flags, step counts ----
+
+def _sup_trace(reviewers, critic, arbiter, changes=(), skipped=None, capped=(), invalid=()):
+    return {"stages": {"reviewers": reviewers, "critic": critic, "arbiter": arbiter},
+            "supervisor": {"planner": {"run": [], "skipped": skipped or {}, "cached": False},
+                           "changes": list(changes), "capped": list(capped), "invalid": list(invalid)}}
+
+
+def _supervised():
+    """A01 on a01: planted 9-10.RL.1.A and 9-10.W.3.A.c. The reviewers flag both plus 9-10.W.3.A.d (a
+    neighbour) and 8.RL.1.A (same line, other grade: a chain flag); the critic drops 9-10.W.3.A.c (a planted
+    loss); the arbiter absorbs 9-10.W.3.A.d."""
+    base = _scripted()
+    final = [_v("9-10.RL.1.A", "growth_area", "6+-reading", "developing"),
+             _v("8.RL.1.A", "growth_area", "6+-reading", "developing")]
+    changes = [{"standard": "9-10.W.3.A.c", "step": "critic", "action": "dropped:met", "reason": "x", "segments": [1]},
+               {"standard": "9-10.W.3.A.d", "step": "arbiter", "action": "absorbed", "into": "9-10.RL.1.A",
+                "reason": "y", "segments": [1]}]
+    trace = _sup_trace(["8.RL.1.A", "9-10.RL.1.A", "9-10.W.3.A.c", "9-10.W.3.A.d"],
+                       ["8.RL.1.A", "9-10.RL.1.A", "9-10.W.3.A.d"], ["8.RL.1.A", "9-10.RL.1.A"], changes,
+                       skipped={"3-reading": "Not exercised."}, capped=["critic"])
+    a01 = _res("ela9v2-a01@" + VERSION, A1, "paragraph", final, trace=trace)
+
+    def review(s, course, assignment_id, user, options):
+        if (assignment_id.split("@")[0], user) == ("ela9v2-a01", A1):
+            return a01
+        return base(s, course, assignment_id, user, options)
+    return review
+
+
+def test_stage_scores_come_from_the_trace(data):
+    r = _run(data, _supervised())
+    assert list(r.stages) == ["reviewers", "critic", "arbiter"]
+    rev, arb = r.stages["reviewers"].exact, r.stages["arbiter"].exact
+    assert (rev.tp, rev.fp, rev.fn) == (2, 2, 0) and (arb.tp, arb.fp, arb.fn) == (1, 1, 1)
+
+
+def test_planted_lost_counts_planted_codes_removed_by_a_step(data):
+    assert _run(data, _supervised()).stage_planted_lost == {"critic": 1, "arbiter": 0}
+
+
+def test_chain_flag_is_unplanted_same_line_other_grade_than_a_planted_code(data):
+    r = _run(data, _supervised())
+    assert r.chain.count == 1  # 8.RL.1.A against planted 9-10.RL.1.A
+    assert r.chain.exact_without.fp == r.growth.overall.exact.fp - 1
+
+
+def test_step_counts_sum_the_supervisor_trace(data):
+    st = _run(data, _supervised()).steps
+    assert (st.skipped, st.dropped_met, st.dropped_not_shown, st.absorbed) == ({"3-reading": 1}, 1, 0, 1)
+    assert st.capped == {"critic": 1} and st.invalid == {}
+
+
+def test_unsupervised_runs_have_no_stage_blocks(data):
+    r = _run(data)
+    assert r.stages == {} and r.steps is None and r.baseline is None
+
+
+def test_baseline_from_log_scores_only_the_given_assignments_and_students(tmp_path):
+    log = tmp_path / "flags.jsonl"
+    rows = [{"assignment": "ela9v2-a01", "student": A1, "submission_id": "s1", "planted": {"9-10.RL.1.A": 2},
+             "flags": [{"standard": "9-10.RL.1.A"}, {"standard": "9-10.RL.1.B"}]},
+            {"assignment": "ela9v2-a09", "student": A1, "submission_id": "s2", "planted": {"9-10.RL.1.A": 2},
+             "flags": [{"standard": "9-10.W.1.A.a"}]},
+            {"assignment": "ela9v2-a01", "student": B2, "submission_id": "s3", "planted": None, "flags": []}]
+    log.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    b = eval_v2.baseline_from_log(log, {"ela9v2-a01"}, {A1, B2})
+    assert (b.exact.tp, b.exact.fp, b.exact.fn) == (1, 1, 0)
+    assert eval_v2.baseline_from_log(log, {"ela9v2-a01"}, {A1}, exclude={"s1"}).exact.tp == 0
+
+
+def test_evaluate_reads_the_baseline_log(data, tmp_path):
+    log = tmp_path / "flags.jsonl"
+    log.write_text(json.dumps({"assignment": "ela9v2-a01", "student": A1, "submission_id": "s1",
+                               "planted": {"9-10.RL.1.A": 2}, "flags": [{"standard": "9-10.RL.1.A"}]}) + "\n",
+                   encoding="utf-8")
+    r = _run(data, _supervised(), baseline_log=log)
+    assert r.baseline.exact.tp == 1 and r.baseline.exact.fp == 0
+
+
+def test_markdown_has_stage_and_baseline_tables(data, tmp_path):
+    log = tmp_path / "flags.jsonl"
+    log.write_text("", encoding="utf-8")
+    md = eval_v2.format_report_markdown(_run(data, _supervised(), baseline_log=log))
+    assert "## By stage" in md and "| baseline (flag log) |" in md and "| arbiter |" in md
+    assert "Chain flags" in md and "Steps:" in md
+    assert "By stage" in eval_v2.format_report(_run(data, _supervised()))
+
+
+def test_cli_supervised_with_a_switch_and_a_baseline_log(data, monkeypatch, capsys):
+    for k, v in {"FAKE_LLM": "1", "DATA_DIR": str(data), "REPORTS_DIR": str(data / "reports")}.items():
+        monkeypatch.setenv(k, v)
+    log = data / "old-flags.jsonl"
+    log.write_text("", encoding="utf-8")
+    assert main(["evaluate", "--course", VERSION, "--through-week", "1", "--students", "1", "--profile",
+                 "supervised", "--no-arbiter", "--baseline-log", str(log)]) == 0
+    md = next((data / "reports").glob("evalv2-*.md")).read_text(encoding="utf-8")
+    assert "## By stage" in md and "| baseline (flag log) |" in md and "| arbiter |" not in md
+    assert main(["evaluate", "--course", VERSION, "--profile", "graded", "--no-critic"]) == 2
+    assert main(["evaluate", "--course", VERSION, "--baseline-log", str(data / "missing.jsonl")]) == 2
+
+
+def test_baseline_covers_only_the_submissions_with_stages(data, tmp_path):
+    """Review fix 6: multiple choice has no stages, so the baseline row must leave it out too."""
+    log = tmp_path / "flags.jsonl"
+    rows = [{"assignment": "ela9v2-a01", "student": A1, "submission_id": "s1", "planted": {"9-10.RL.1.A": 2},
+             "flags": [{"standard": "9-10.RL.1.A"}]},
+            {"assignment": "ela9v2-a03", "student": A1, "submission_id": "s3", "planted": {"9-10.RL.1.B": 3},
+             "flags": [{"standard": "9-10.RL.1.B"}]}]  # a03 is multiple choice: no stages in its result
+    log.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    r = _run(data, _supervised(), baseline_log=log)
+    assert (r.baseline.exact.tp, r.baseline.exact.fn) == (1, 0)
+
+
+# ---- reviewer fixes Task 4: chain flags by grade offset and strand ----
+
+from agentic_lab.eval_v2 import chain_offset  # noqa: E402
+
+
+def test_chain_offset_counts_grade_steps_below_and_above():
+    assert chain_offset("8.W.3.A.c", ["9-10.W.3.A.c"]) == 1
+    assert chain_offset("6.W.3.A.c", ["9-10.W.3.A.c"]) == 3
+    assert chain_offset("9-10.L.1.A.e", ["5.L.1.A.e"]) == -4
+    assert chain_offset("5.L.1.A.e", ["5.L.1.A.c"]) is None  # same grade: not a chain flag
+
+
+def test_chain_offset_tie_counts_as_below():
+    assert chain_offset("7.W.3.A.c", ["6.W.3.A.c", "8.W.3.A.c"]) == 1
+
+
+def test_report_has_chain_offsets(data):
+    r = _run(data, _supervised())
+    assert r.chain.offsets == {"below 1": 1} and r.chain.below_by_strand == {"RL": 1}  # 8.RL.1.A vs 9-10.RL.1.A
