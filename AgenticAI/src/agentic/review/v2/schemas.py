@@ -51,6 +51,7 @@ class StepJudgment(BaseModel):
     evidence: list[SegmentEvidence] = []
     notable_strength: bool = False
     strength_note: str | None = None
+    short_of: list[str] = []  # progression.v5+: codes at this step that fall short (growth_area only)
 
 
 class StepOut(BaseModel):

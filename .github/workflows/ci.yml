@@ -38,6 +38,7 @@ jobs:
       VERIFY: '0'
       AGENTIC_API_TOKEN: ci-test-token
       WEBHOOK_SECRET: ci-test-webhook-secret
+      JWT_SECRET: ci-test-jwt-secret-not-for-real-use-0123456789
 
     steps:
       - name: Check out repository
@@ -83,6 +84,16 @@ jobs:
         run: |
           python -m pytest -q -rs \
             --junitxml=../agentic-test-results.xml
+
+      # The backend's own table for login accounts (Backend/migrations). Created after the
+      # AgenticAI tests, which expect a database with only Justin's tables.
+      - name: Create backend tables (app_user)
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/Backend/migrations:/sql:ro" \
+            postgres:16 \
+            psql postgresql://sass:change-me@localhost:5432/sass \
+              -v ON_ERROR_STOP=1 -f /sql/001_app_user.sql
 
       # These steps prepare data for the backend integration tests.
       - name: Seed legacy classroom

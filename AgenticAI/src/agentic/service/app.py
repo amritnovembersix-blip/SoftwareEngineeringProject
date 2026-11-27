@@ -16,14 +16,14 @@ import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, StringConstraints
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from agentic import wiring
@@ -74,9 +74,12 @@ class SubmissionGradedEvent(BaseModel):
     body: EventBody
 
 
+Id = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]  # blank is an error, never "everything"
+
+
 class SweepRequest(BaseModel):
-    course_id: str | None = None
-    assignment_id: str | None = None  # requires course_id
+    course_id: Id | None = None
+    assignment_id: Id | None = None  # requires course_id
 
 
 class TrendAnalysisRequest(BaseModel):
@@ -438,16 +441,35 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
         been reviewed. Listing happens now (an unknown course is a 422); reviewing in the background.
         A sweep of the same scope that is still queued or running is returned with duplicate=True."""
         req = req or SweepRequest()
-        if req.assignment_id and not req.course_id:
+        if req.assignment_id is not None and req.course_id is None:
             raise ApiError(422, "validation_failed", "assignment_id requires course_id",
                            {"fields": ["body.course_id"]})
-        refs, skips = [], []
-        for course_id in [req.course_id] if req.course_id else list_courses(s):
+        refs, skips, unreadable = [], [], []
+        for course_id in [req.course_id] if req.course_id is not None else list_courses(s):
             try:
                 lms = make_lms(s, course_id)
+                lms.get_course(course_id)
+            except (LookupError, FileNotFoundError):
+                raise ApiError(422, "unknown_course", "the LMS has no such course") from None
+            except ValueError:  # the course's files can't be read: never a 500, never the content
+                if req.course_id is not None:
+                    raise ApiError(502, "lms_data_error", f"the LMS returned unreadable data for {course_id}") from None
+                unreadable.append(course_id)
+                continue
+            if req.assignment_id is not None:
+                try:
+                    lms.get_assignment(course_id, req.assignment_id)
+                except (LookupError, FileNotFoundError):
+                    raise ApiError(422, "unknown_assignment", "the course has no such assignment") from None
+            try:
                 submissions = lms.list_submissions(course_id, req.assignment_id)
             except (LookupError, FileNotFoundError):
                 raise ApiError(422, "unknown_course", "the LMS has no such course") from None
+            except ValueError:
+                if req.course_id is not None:
+                    raise ApiError(502, "lms_data_error", f"the LMS returned unreadable data for {course_id}") from None
+                unreadable.append(course_id)
+                continue
             mc = {}  # assignment id -> is multiple choice (skipped under the MVP pipeline)
             for sub in submissions:
                 if skip_mc and sub.assignment_id not in mc:
@@ -468,6 +490,8 @@ def create_app(settings: Settings | None = None, reviewer_factory: ReviewerFacto
                                               attempt=sub.attempt, submitted_at=sub.submitted_at))
         run, duplicate = runs.create("manual", len(refs) + len(skips), (req.course_id, req.assignment_id))
         if not duplicate:
+            if unreadable:
+                runs.update(run.run_id, unreadable_courses=unreadable)
             tasks.add_task(sweep, run.run_id, refs, skips)
         return TriggerAccepted(run_id=run.run_id, duplicate=duplicate, ignored=False)
 

@@ -28,7 +28,7 @@ To point at a different backend, copy `.env.example` to `.env` and change `VITE_
 
 ## Demo
 
-1. `bash Backend/scripts/fill_demo_data.sh` (20 students, nothing reviewed)
+1. Load the demo data as in `Backend/README.md` → *Set up from scratch* (`seed-demo` for classroom 1.01, `fill-demo` for English 9 Periods 1 and 2)
 2. Start the agentic service, the backend and `npm run dev`
 3. Classroom 1.01 → **Review class** → watch "Reviewing… n of 20"
 4. Open a student to see the findings

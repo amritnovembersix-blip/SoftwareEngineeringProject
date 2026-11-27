@@ -52,7 +52,10 @@ def test_start_review_unknown_classroom_is_404(fake_agentic):
 
 def test_progress_adds_completed_and_skipped(fake_agentic):
     body = client.get("/reviews/run-1").json()
-    assert body == {"run_id": "run-1", "status": "running", "done": 12, "total": 20, "error": None}
+    # The original fields keep their meaning; newer fields (failed, message, ...) are added alongside.
+    assert {k: body[k] for k in ("run_id", "status", "done", "total", "error")} == \
+        {"run_id": "run-1", "status": "running", "done": 12, "total": 20, "error": None}
+    assert body["message"] == "Reviewing… 12 of 20 done."
 
 
 def test_progress_unknown_run_is_404(fake_agentic):

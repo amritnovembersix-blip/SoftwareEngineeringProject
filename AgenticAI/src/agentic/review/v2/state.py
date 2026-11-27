@@ -23,6 +23,8 @@ class ReviewStateV2(TypedDict, total=False):
     band: object  # the one BandReviewer a `band` task runs (its Send payload)
     band_results: Annotated[list[tuple], operator.add]  # (BandResult, seconds)
     standards: list[StandardRef]
+    planned_verdicts: list[Verdict]  # supervised: not evident for the reviewers the planner skipped
+    planner: dict  # supervised: the planner's decision (ids, reasons, usage, model), for merge to record
     verdicts: list[Verdict]
     observations: list[Observation]
     findings: list[Finding]

@@ -70,13 +70,45 @@ fetch -> route by type -> multiple choice -> mc_lookup (no LLM) ----------------
 
 ### Profiles and cost
 
-`BANDS_PROFILE=graded|full|lean` (`config/bands.toml`; default `graded`).
+`BANDS_PROFILE=graded|supervised|full|lean` (`config/bands.toml`; default `graded`).
 
 | Profile | Reviewers | Calls per written submission |
 |---|---|---|
 | `graded` | `3-language`, `3-writing`, `3-reading`, likewise for grades 4 and 5, then `6+-writing`, `6+-reading` | 3-5 reviewed per grade and strand at low reasoning with `per_standard.v2` (a higher evidence bar; `full` and `lean` stay on v1); 6+ by downward search at high reasoning, one call per round (course grade 9: 9 + 2 reviewers, plus root cause) |
 | `full` | `3-5-language`, `3-5-writing`, `3-5-reading`, `6+-writing`, `6+-reading` | 5 reviewers, plus root cause, plus Jev: up to 7 |
 | `lean` | `3-5-all`, `6+-all` | 2 reviewers: 2 to 4 |
+| `supervised` | `graded`'s reviewers with the prompt audit's prompts (`per_standard.v5`, `progression.v5` and `conditions.v3`; see below), plus a planner, a critic and an arbiter | `graded`'s calls, minus the reviewers the planner skips, plus one critic and one arbiter call per written submission (high reasoning) and one planner call per assignment (low reasoning, cached) |
+
+**The supervised profile's reviewers** (`docs/superpowers/specs/2026-11-18-reviewer-fixes-design.md`) differ from
+`graded`'s in three ways:
+- The grade 3-5 language reviewers stay one per grade. A single `3-5-language` reviewer that filed each error under
+  its lowest grade (`per_standard.v4`) was tried and undone: it lost grade 5 language recall
+  (`docs/evaluations/2026-11-18-reviewer-fixes-phase1-2.00-control-wk3.md`).
+- `progression.v5`: a failed grade 6+ step lists the lines it falls short of (`short_of`); only those become growth
+  areas, the other lines at that step meet. A reply with no valid `short_of` flags every line (drop `no_short_of`).
+- Both prompts define the support levels (approaching: one slip; developing: a repeated pattern; beginning: mostly
+  absent or wrong) and keep the callout that work may meet a standard.
+- `conditions = "conditions.v3"`: conditions written against each concept, shown as context, with `3-5:` and `6+:`
+  keys for concepts that change meaning at grade 6 (v3 drops "titles of works" from L.1.B).
+
+**The supervised profile** (`docs/superpowers/specs/2026-11-17-review-supervisor-design.md`) adds three checking
+steps to `graded`, to cut false flags:
+
+- **Planner** (inside `plan`, once per assignment, never sees student work): may skip the grade 3-5 writing and
+  reading reviewers an assignment doesn't exercise (a reading target, RL or RI, keeps the 3-5 reading reviewers). Language and grade 6+ reviewers always run, and so does a
+  reviewer whose strand an assignment targets (`notes`). Skipped reviewers' standards are `not_evident`, reviewer
+  `planner`.
+- **Critic** (after `merge`): keeps or drops each growth area against its cited segments; a drop becomes `meets`
+  or `not_evident`. Up to `critic_max_items` (60) per submission, grade 6+ first; a malformed item is kept unchecked.
+- **Arbiter** (after the critic): clusters growth areas that cite the same segments and keeps one standard per
+  problem; an absorbed growth area becomes `not_evident`. It never clusters two codes on one concept line: across grades
+  that's the progression chain (root cause's job), and at one grade they're separate sibling skills. Up to `arbiter_max_clusters` (15) per submission.
+
+Each step is one structured call through `ChatModel`, with its rules checked in code; a reply that breaks them
+twice changes nothing. Settings are in `[profiles.supervised.supervisor]`; prompts are `planner.v1`, `critic.v1`
+and `arbiter.v1`. `review` and `evaluate` take `--no-planner`, `--no-critic` and `--no-arbiter`. The trace records
+the growth-area codes after each step (`trace.stages`) and every change with its reason (`trace.supervisor`):
+codes, segment numbers and reasons only.
 
 Multiple choice makes 0 calls. For free-tier testing, `LLM_TPM` (tokens per minute) and `LLM_RPD` (requests per
 day) cap usage; blank means unlimited. `LLM_RPD` counts per process and per local date: a restart resets the
@@ -181,7 +213,7 @@ resolve against this folder.
 
 Variables to fill in `.env` (names only): `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`, `EMBEDDING_PROVIDER`,
 `EMBEDDING_MODEL`, `EMBEDDING_API_KEY`, `EMBEDDING_DIM`, `JEV_API_KEY`, `DATABASE_URL_LOCAL`, plus the optional
-`DECISION_PROVIDER`, `JEV_MODEL`, `JEV_BASE_URL`, `JEV_MISS_THRESHOLD`, `LLM_BASE_URL`, `LLM_RPM`, `EMBEDDING_RPM`, `REVIEW_STRATEGY`, `RETRIEVAL_K`, `VERIFY`,
+`DECISION_PROVIDER`, `JEV_MODEL`, `JEV_BASE_URL`, `JEV_MISS_THRESHOLD`, `LLM_BASE_URL`, `LLM_RPM`, `LLM_TIMEOUT_S`, `DB_STATEMENT_TIMEOUT_S`, `EMBEDDING_RPM`, `REVIEW_STRATEGY`, `RETRIEVAL_K`, `VERIFY`,
 `REVIEW_PIPELINE`, `BANDS_PROFILE`, `LLM_TPM`, `LLM_RPD`, `LLM_REASONING`,
 `CLASSROOM`, `ANALYSIS_DELAY_S`, `LMS_SOURCE`, `DATA_DIR`, `REPORTS_DIR`, `STANDARDS_FILE`, `FAKE_LLM`.
 

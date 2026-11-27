@@ -12,6 +12,9 @@ from agentic.decisions.fake import FakeDecisionModel
 from agentic.decisions.jev import JevDecisionModel
 from agentic.llm.base import ChatModel, Embedder, chat_key, model_label
 from agentic.llm.fake import FakeChatModel, FakeEmbedder
+from agentic.review.v2.supervisor import (
+    ArbiterOut, ClusterCall, CriticOut, PlannerOut, Problem,
+)
 from agentic.llm.gemini import GeminiChatModel, GeminiEmbedder
 from agentic.llm.ratelimit import RateLimiter
 from agentic.lms.base import LMSClient
@@ -43,6 +46,9 @@ _PARAGRAPH = re.compile(r"^¶(\d+) ", re.MULTILINE)
 _GROUP = re.compile(r"^## ", re.MULTILINE)
 _STEP_GRADE = re.compile(r"^- \S+ \(grade (\d+)\) \|", re.MULTILINE)
 
+
+_CLUSTER = re.compile(r"^Cluster \d+:$", re.M)
+_CLUSTER_CODE = re.compile(r"^- (\S+) \|", re.M)
 
 def demo_fake_chat(extra_handlers: dict | None = None) -> FakeChatModel:
     """Deterministic chat for any essay: standards 1 and 3 not met (paragraph 2), the rest met.
@@ -110,15 +116,30 @@ def demo_fake_chat(extra_handlers: dict | None = None) -> FakeChatModel:
             grade, group = int(grades[0]), block.split(None, 1)[0]
             out.append(StepJudgment(group=group, verdict="meets") if grade <= 6 else StepJudgment(
                 group=group, verdict="growth_area", support_level="approaching" if grade == 7 else "developing",
-                evidence=s1))
+                evidence=s1, short_of=re.findall(r"^- (\S+) \(grade", block, re.M)))  # v5: every line shown
         return StepOut(judgments=out)
 
     def root_cause(_system: str, _user: str) -> RootCauseOut:
         return RootCauseOut(links=[], details=[])
 
+    # supervised profile: the planner runs everything, the critic keeps everything, and the arbiter makes each
+    # cluster member its own problem, so a fake supervised review keeps every growth area
+    def planner(_system: str, _user: str) -> PlannerOut:
+        return PlannerOut(choices=[])
+
+    def critic(_system: str, _user: str) -> CriticOut:
+        return CriticOut(calls=[])
+
+    def arbiter(_system: str, user: str) -> ArbiterOut:
+        out = []
+        for n, block in enumerate(_CLUSTER.split(user)[1:], 1):
+            out.append(ClusterCall(cluster=n, problems=[Problem(standard=c, reason="Separate problem.")
+                                                        for c in _CLUSTER_CODE.findall(block)]))
+        return ArbiterOut(clusters=out)
+
     return FakeChatModel({AssessmentOut: assess, AnalysisOut: analyze, JudgmentOut: judge,
                           PerStandardOut: per_standard, ProgressionOut: progression, StepOut: search,
-                          RootCauseOut: root_cause,
+                          RootCauseOut: root_cause, PlannerOut: planner, CriticOut: critic, ArbiterOut: arbiter,
                           **(extra_handlers or {})})
 
 
@@ -142,7 +163,7 @@ def build_chat(s: Settings) -> ChatModel:
         return demo_fake_chat()
     if provider == "gemini":
         _require(s, "llm_api_key", "llm_model")
-        return GeminiChatModel(s.llm_model, s.llm_api_key, s.llm_rpm, reasoning=s.llm_reasoning,
+        return GeminiChatModel(s.llm_model, s.llm_api_key, s.llm_rpm, reasoning=s.llm_reasoning, timeout_s=s.llm_timeout_s,
                                limiter=_shared_limiter("gemini", s.llm_model, s.llm_rpm, s.llm_tpm, s.llm_rpd))
     raise ValueError(f"unknown LLM_PROVIDER {s.llm_provider!r}")
 
@@ -153,7 +174,8 @@ def build_embedder(s: Settings) -> Embedder:
         return FakeEmbedder(s.embedding_dim)
     if provider == "gemini":
         _require(s, "embedding_api_key", "embedding_model")
-        return GeminiEmbedder(s.embedding_model, s.embedding_api_key, s.embedding_dim, s.embedding_rpm)
+        return GeminiEmbedder(s.embedding_model, s.embedding_api_key, s.embedding_dim, s.embedding_rpm,
+                              timeout_s=s.llm_timeout_s)
     raise ValueError(f"unknown EMBEDDING_PROVIDER {s.embedding_provider!r}")
 
 
@@ -179,7 +201,8 @@ def connect(s: Settings, autocommit: bool = True):
     import psycopg
     from pgvector.psycopg import register_vector
 
-    conn = psycopg.connect(s.database_url_local, autocommit=autocommit)
+    conn = psycopg.connect(s.database_url_local, autocommit=autocommit, connect_timeout=10,
+                           options=f"-c statement_timeout={s.db_statement_timeout_s * 1000}")
     register_vector(conn)
     return conn
 
@@ -281,13 +304,18 @@ def build_v2_chats(s: Settings, profile) -> dict[str, ChatModel]:
     if s.fake_llm:
         return {}
     chats: dict[str, ChatModel] = {}
-    for r in profile.reviewers:
-        level = r.reasoning or "default"
-        if not r.model and level == s.llm_reasoning:
+    wanted = [(r.model, r.reasoning or "default") for r in profile.reviewers]
+    sup = getattr(profile, "supervisor", None)
+    if sup is not None:  # the supervised steps run on the default model at their own levels
+        wanted += [(None, level) for on, level in ((sup.planner, sup.planner_reasoning),
+                                                   (sup.critic, sup.critic_reasoning),
+                                                   (sup.arbiter, sup.arbiter_reasoning)) if on]
+    for model, level in wanted:
+        if not model and level == s.llm_reasoning:
             continue
-        key = chat_key(r.model, level)
+        key = chat_key(model, level)
         if key not in chats:
-            chats[key] = build_chat(s.model_copy(update={"llm_model": r.model or s.llm_model,
+            chats[key] = build_chat(s.model_copy(update={"llm_model": model or s.llm_model,
                                                          "llm_reasoning": level}))
     return chats
 
@@ -296,14 +324,19 @@ def build_v2_reviewer(s: Settings, version: str | None = None, options: Resolved
                       conn=None) -> ReviewerV2:
     options = options or resolve_options(s)
     profile = effective_profile(load_profile(s.config_dir, options.profile), options)
-    conditions = load_conditions(s.config_dir)
+    conditions = load_conditions(s.config_dir, profile.conditions)
     refs = {r.prompt for r in profile.reviewers} | ({ROOT_CAUSE_PROMPT} if options.root_cause else set())
+    sup = profile.supervisor
+    if sup is not None:
+        refs |= {ref for on, ref in ((sup.planner, sup.planner_prompt), (sup.critic, sup.critic_prompt),
+                                     (sup.arbiter, sup.arbiter_prompt)) if on}
     templates = {ref: load_prompt(s.prompts_dir, ref) for ref in sorted(refs)}
     chat = build_chat(s)
     decision = build_decision(s.model_copy(update={"verify": options.verify}))
     graph = build_v2_graph(build_lms(s, version), build_v2_standards(s, conn), chat, decision, conditions,
                            templates, options, profile, s.jev_miss_threshold,
-                           chats=build_v2_chats(s, profile))
+                           chats=build_v2_chats(s, profile),
+                           tuning_hash=tuning_hash(profile, conditions, templates))
     models = {
         "chat": model_label(chat),
         "embedder": None,
