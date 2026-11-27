@@ -1863,5 +1863,138 @@ tr.row-flash {
 .classroom-open-link {
   font-size: 14px;
 }
+
+
+.student-assignments-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.assignment-page-heading h1 {
+  margin: 5px 0 8px;
+  color: #291d43;
+  font-size: 30px;
+}
+
+.assignment-eyebrow {
+  margin: 0;
+  color: #8565b1;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.student-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 22px;
+  background: white;
+  border: 1px solid #e9def7;
+  border-radius: 15px;
+}
+
+.student-profile-avatar {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 15px;
+  background: #eee5fa;
+  color: #7652a5;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.student-profile-info h2 {
+  margin: 3px 0;
+  color: #291d43;
+  font-size: 20px;
+}
+
+.student-full-id {
+  color: #898195;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.assignment-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.assignment-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 105px;
+  padding: 20px;
+  background: white;
+  border: 1px solid #e9def7;
+  border-radius: 14px;
+}
+
+.summary-label {
+  color: #82768f;
+  font-size: 13px;
+}
+
+.assignment-summary-card strong {
+  color: #392957;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.assignment-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+
+.assignment-section-heading h2 {
+  margin: 0 0 6px;
+  color: #291d43;
+  font-size: 22px;
+}
+
+.assignment-section-heading p {
+  margin: 0;
+}
+
+.assignment-unavailable {
+  padding: 38px 24px;
+  text-align: center;
+  background: white;
+  border: 1px dashed #d8c9e9;
+  border-radius: 15px;
+}
+
+.assignment-unavailable-icon {
+  margin-bottom: 12px;
+  color: #8565b1;
+  font-size: 30px;
+}
+
+.assignment-unavailable h3 {
+  margin: 0 0 10px;
+  color: #392957;
+}
+
+.assignment-unavailable p {
+  max-width: 620px;
+  margin: 8px auto;
+  color: #746987;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .assignment-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
   
 }

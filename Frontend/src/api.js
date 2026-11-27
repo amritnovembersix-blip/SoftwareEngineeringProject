@@ -4,8 +4,8 @@
  * The frontend talks only to the FastAPI backend (Backend/, port 8001), never to the
  * agentic service, so the service token stays out of the browser.
  *
- * Endpoints marked "PENDING BACKEND" are not in the backend yet (see docs/BACKEND_GAPS.md).
- * Their pages show a "waiting on the backend" notice until Amrit adds them.
+ * Only endpoints that exist in the backend (Amrit's branch backend/cleanup) are called here.
+ * What the frontend still needs from the backend is listed in docs/BACKEND_GAPS.md.
  */
 
 export const API_URL = (
@@ -167,21 +167,16 @@ export const api = {
 
   // Home
   dashboard: () => request("GET", "/dashboard"),
-  notifications: () => request("GET", "/notifications"),
+  // Peer tutoring pairs are left out of this release, so their notifications are hidden too.
+  notifications: () =>
+    request("GET", "/notifications").then((rows) => (rows || []).filter((n) => n.kind !== "pending_pairs")),
 
   // Classrooms
   classrooms: () => request("GET", "/classrooms"),
   students: (classroomId) => request("GET", `/classrooms/${enc(classroomId)}/students`),
   conceptWeeks: (classroomId, strand) =>
     request("GET", `/classrooms/${enc(classroomId)}/concept-weeks${qs({ strand })}`),
-  reteachGroups: (classroomId) => request("GET", `/classrooms/${enc(classroomId)}/reteach-groups`),
   comparison: (a, b) => request("GET", `/comparison${qs({ classrooms: `${a},${b}` })}`),
-
-  // Peer pairs (FR7)
-  peerPairs: (classroomId, status) =>
-    request("GET", `/classrooms/${enc(classroomId)}/peer-pairs${qs({ status })}`),
-  decidePeerPair: (pairId, status) =>
-    request("PATCH", `/peer-pairs/${enc(pairId)}`, { body: { status } }),
 
   // One student
   concepts: (studentId, classroomId) =>
@@ -195,22 +190,10 @@ export const api = {
     request("GET", `/students/${enc(studentId)}/findings${qs({ assignment_id: assignmentId })}`),
   strengths: (studentId, assignmentId) =>
     request("GET", `/students/${enc(studentId)}/strengths${qs({ assignment_id: assignmentId })}`),
-  respondToFinding: (findingId, stance, reason) =>
-    request("POST", `/findings/${enc(findingId)}/responses`, {
-      body: { stance, reason: reason && reason.trim() ? reason.trim() : null },
-    }),
 
   // Review class
   startReview: (classroomId) => request("POST", `/classrooms/${enc(classroomId)}/reviews`),
   reviewProgress: (runId) => request("GET", `/reviews/${enc(runId)}`),
-
-  // Admin - PENDING BACKEND. Same shapes as the agentic service's own endpoints
-  // (AgenticAI/src/agentic/service/app.py), forwarded by the backend for admins only.
-  reviewPolicy: () => request("GET", "/admin/review-policy"),
-  saveReviewPolicy: (policy) => request("PUT", "/admin/review-policy", { body: policy }),
-  settings: () => request("GET", "/admin/settings"),
-  saveSetting: (key, value) => request("PUT", `/admin/settings/${enc(key)}`, { body: { value } }),
-  settingHistory: (key) => request("GET", `/admin/settings/${enc(key)}/history`),
 };
 
 // ------------------------------------
