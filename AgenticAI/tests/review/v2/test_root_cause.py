@@ -202,3 +202,31 @@ def test_prompt_describes_its_reply_fields():
         assert field in TEMPLATE
     assert "- CODE | standard text | summary" in TEMPLATE
     assert "shared cause in" not in TEMPLATE  # no field holds it; the link rationale explains
+
+
+BAND = {"3-5:W.2.A": ["opinion with reasons"], "6+:W.2.A": ["developing a claim"], "L.1.A": ["clauses"]}
+LO, HI = "5.W.2.A.a", "8.W.2.A.a"
+
+
+def _band_step(reply):
+    chat = FakeChatModel({RootCauseOut: lambda s, u: reply})
+    return RootCauseStep(chat, TEMPLATE, BAND), chat
+
+
+def test_band_keyed_conditions_listed_per_band_and_accepted():
+    reply = RootCauseOut(links=[], details=[
+        RootDetail(standard_code=HI, condition="developing a claim"),
+        RootDetail(standard_code=LO, condition="opinion with reasons")])
+    step, chat = _band_step(reply)
+    _, details, dropped, _ = step.run([_f(HI, [1]), _f(LO, [1])], SEGMENTS, {c: _ref(c) for c in (LO, HI)})
+    (_, _, user), = chat.calls
+    assert "- 3-5:W.2.A: opinion with reasons" in user and "- 6+:W.2.A: developing a claim" in user
+    assert details[HI].condition == "developing a claim" and details[LO].condition == "opinion with reasons"
+    assert dropped == []
+
+
+def test_other_bands_condition_is_dropped():
+    reply = RootCauseOut(links=[], details=[RootDetail(standard_code=HI, condition="opinion with reasons")])
+    step, _ = _band_step(reply)
+    _, details, dropped, _ = step.run([_f(HI, [1]), _f(LO, [1])], SEGMENTS, {c: _ref(c) for c in (LO, HI)})
+    assert details[HI].condition is None and [d.reason for d in dropped] == ["unknown_condition"]

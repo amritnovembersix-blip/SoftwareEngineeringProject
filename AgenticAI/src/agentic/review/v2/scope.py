@@ -33,6 +33,21 @@ def group_of(code: str) -> str:
     return ".".join(code.split(".")[1:4])
 
 
+def conditions_for(conditions: dict[str, list[str]], code: str) -> tuple[str, list[str]] | None:
+    """A code's conditions and the key they came from: the band key for the code's own grade (`6+:` for grade 6
+    and up, else `3-5:`) wins over the plain key (R5, R7). None when neither exists."""
+    return band_conditions(conditions, int(code.split(".")[0].split("-")[0]), group_of(code))
+
+
+def band_conditions(conditions: dict[str, list[str]], grade: int, group: str) -> tuple[str, list[str]] | None:
+    """`conditions_for` by grade and group, for callers that hold a group rather than a code."""
+    band = "6+" if grade >= 6 else "3-5"
+    for key in (f"{band}:{group}", group):
+        if conditions.get(key):
+            return key, conditions[key]
+    return None
+
+
 def _normalized(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
