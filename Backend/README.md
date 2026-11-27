@@ -65,6 +65,17 @@ use `pytestmark = pytest.mark.real_auth` and send real tokens (`tests/test_acces
 No percentages or scores: SASS doesn't grade. `needs_attention` means Developing or Beginning on at
 least 2 of the last 3 pieces of work.
 
+## Class views
+
+| Endpoint | What it returns |
+|---|---|
+| `GET /classrooms/{id}/concept-weeks` | The heatmap. `weeks` (Mondays, in order), `legend`, and `skills`: one row per skill (`concept_code`, `skill_code`, `strand`, `concept_name`) with `cells` aligned to `weeks` (`null` = no data). Each cell counts students: `meets`, `approaching`, `developing`, `beginning`, `too_little_evidence`, and `needing_support` (developing + beginning). Skills needing the most support in the latest week come first. Optional `?strand=Writing` |
+| `GET /classrooms/{id}/reteach-groups` | Students who share a root gap: `root_concept` (the lower-grade skill to teach) and `grade_concept` (where it shows up), with names, `student_ids` and `size`. Largest groups first |
+| `GET /comparison?classrooms=a,b` | Two classes side by side: `student_count`, `students_needing_attention`, `skill_statuses` and `skill_trends` (counts), and `weekly` (student-skill results needing support, and meeting, per week). **422** unless exactly two different IDs; **403** if either isn't yours |
+
+Counts only, never percentages. For colour in the heatmap, also show the number or an icon, so it
+works without colour.
+
 ## Dashboard and notifications
 
 | Endpoint | What it returns |
