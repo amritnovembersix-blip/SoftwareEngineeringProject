@@ -1,10 +1,11 @@
-
 /**
- * SASS - API Configuration
+ * SASS - every call the frontend makes to the backend.
  *
- * All frontend API requests go through this file.
- * The frontend communicates with the FastAPI backend,
- * never directly with the Agentic AI service.
+ * The frontend talks only to the FastAPI backend (Backend/, port 8001), never to the
+ * agentic service, so the service token stays out of the browser.
+ *
+ * Only endpoints that exist in the backend (Amrit's branch backend/cleanup) are called here.
+ * What the frontend still needs from the backend is listed in docs/BACKEND_GAPS.md.
  */
 
 export const API_URL = (
@@ -12,26 +13,32 @@ export const API_URL = (
 ).replace(/\/$/, "");
 
 // ------------------------------------
-// Authentication session management
+// Login session (token + user) in browser storage
 // ------------------------------------
 
 const TOKEN_KEY = "sassToken";
 const USER_KEY = "sassUser";
 
-// Retrieve authentication token
+function safeStorage(kind) {
+  try {
+    return kind === "local" ? window.localStorage : window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function getToken() {
   return (
-    sessionStorage.getItem(TOKEN_KEY) ||
-    localStorage.getItem(TOKEN_KEY)
+    safeStorage("session")?.getItem(TOKEN_KEY) ||
+    safeStorage("local")?.getItem(TOKEN_KEY) ||
+    null
   );
 }
 
-// Retrieve logged-in user
 export function getUser() {
   const raw =
-    sessionStorage.getItem(USER_KEY) ||
-    localStorage.getItem(USER_KEY);
-
+    safeStorage("session")?.getItem(USER_KEY) ||
+    safeStorage("local")?.getItem(USER_KEY);
   try {
     return raw ? JSON.parse(raw) : null;
   } catch {
@@ -39,54 +46,73 @@ export function getUser() {
   }
 }
 
-// Save login session
+/** session = { token, name, role, email, id, teacher_id } (what api.login returns). */
 export function saveSession(session, remember = false) {
-  const { token, name, role, ...user } = session || {};
-
+  const { token, ...user } = session || {};
   if (!token) {
-    throw new Error(
-      "Authentication token was not returned by the backend."
-    );
+    throw new Error("Authentication token was not returned by the backend.");
   }
-
   clearSession();
-
-  const storage = remember ? localStorage : sessionStorage;
-
-  storage.setItem(TOKEN_KEY, token);
-  storage.setItem(
-    USER_KEY,
-    JSON.stringify({ name, role, ...user })
-  );
+  const storage = safeStorage(remember ? "local" : "session");
+  storage?.setItem(TOKEN_KEY, token);
+  storage?.setItem(USER_KEY, JSON.stringify(user));
 }
 
-// Clear login session
-export function clearSession() {
-  for (const storage of [sessionStorage, localStorage]) {
-    storage.removeItem(TOKEN_KEY);
-    storage.removeItem(USER_KEY);
+/** Update the stored user (after GET /auth/me) without touching the token. */
+export function updateStoredUser(user) {
+  for (const kind of ["session", "local"]) {
+    const s = safeStorage(kind);
+    if (s?.getItem(TOKEN_KEY)) s.setItem(USER_KEY, JSON.stringify(user));
   }
 }
 
+export function clearSession() {
+  for (const kind of ["session", "local"]) {
+    safeStorage(kind)?.removeItem(TOKEN_KEY);
+    safeStorage(kind)?.removeItem(USER_KEY);
+  }
+}
+
+/** The backend's user object -> what the app stores. */
+export function toSessionUser(u) {
+  return {
+    id: u?.id,
+    email: u?.email,
+    name: u?.display_name,
+    role: (u?.role || "").toLowerCase(),
+    teacher_id: u?.teacher_id ?? null,
+  };
+}
+
 // ------------------------------------
-// Common API request handler
+// Request helper
 // ------------------------------------
+
+/** An error from the backend that keeps its HTTP status (404, 409, 422 ...). */
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+function detailText(detail) {
+  if (!detail) return null;
+  if (typeof detail === "string") return detail;
+  // FastAPI validation errors: [{loc, msg}, ...]
+  if (Array.isArray(detail)) return detail.map((d) => d.msg || String(d)).join("; ");
+  if (typeof detail === "object") return detail.message || JSON.stringify(detail);
+  return String(detail);
+}
 
 async function request(method, path, { body, auth = true } = {}) {
   const headers = {};
-
-  if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
-  }
-
+  if (body !== undefined) headers["Content-Type"] = "application/json";
   const token = getToken();
-
-  if (auth && token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  if (auth && token) headers.Authorization = `Bearer ${token}`;
 
   let response;
-
   try {
     response = await fetch(`${API_URL}${path}`, {
       method,
@@ -94,85 +120,109 @@ async function request(method, path, { body, auth = true } = {}) {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new Error(
-      `Can't reach the backend at ${API_URL}. Is it running?`
-    );
+    throw new ApiError(`Can't reach the backend at ${API_URL}. Is it running?`, 0);
   }
 
-  // Handle expired or invalid authentication sessions.
+  // Expired or invalid login: back to the login page.
   if (response.status === 401 && auth) {
     clearSession();
-    window.location.assign("/login");
-
-    throw new Error(
-      "Your session has ended. Please sign in again."
-    );
+    if (window.location.pathname !== "/login") window.location.assign("/login");
+    throw new ApiError("Your session has ended. Please sign in again.", 401);
   }
 
   const data = await response.json().catch(() => null);
-
   if (!response.ok) {
-    throw new Error(
-      (data && data.detail) ||
-      `The backend returned ${response.status}.`
-    );
+    const fallback =
+      response.status === 429
+        ? "The AI service is busy right now; try again in a minute."
+        : `The backend returned ${response.status}.`;
+    throw new ApiError(detailText(data && data.detail) || fallback, response.status);
   }
-
   return data;
 }
 
+const enc = encodeURIComponent;
+
+function qs(params) {
+  const parts = Object.entries(params || {})
+    .filter(([, v]) => v !== undefined && v !== null && v !== "")
+    .map(([k, v]) => `${enc(k)}=${enc(v)}`);
+  return parts.length ? `?${parts.join("&")}` : "";
+}
+
 // ------------------------------------
-// SASS API endpoints
+// Endpoints (Amrit's backend, branch backend/cleanup)
 // ------------------------------------
 
 export const api = {
-  // Authentication
-  login: (email, password) =>
-    request("POST", "/auth/login", {
+  // Login
+  login: async (email, password) => {
+    const data = await request("POST", "/auth/login", {
       body: { email, password },
       auth: false,
-    }),
+    });
+    return { token: data.access_token, ...toSessionUser(data.user) };
+  },
+  me: () => request("GET", "/auth/me"),
 
-  me: () =>
-    request("GET", "/auth/me"),
+  // Home
+  dashboard: () => request("GET", "/dashboard"),
+  // Peer tutoring pairs are left out of this release, so their notifications are hidden too.
+  notifications: () =>
+    request("GET", "/notifications").then((rows) => (rows || []).filter((n) => n.kind !== "pending_pairs")),
 
   // Classrooms
-  classrooms: () =>
-    request("GET", "/classrooms"),
+  classrooms: () => request("GET", "/classrooms"),
+  students: (classroomId) => request("GET", `/classrooms/${enc(classroomId)}/students`),
+  conceptWeeks: (classroomId, strand) =>
+    request("GET", `/classrooms/${enc(classroomId)}/concept-weeks${qs({ strand })}`),
+  comparison: (a, b) => request("GET", `/comparison${qs({ classrooms: `${a},${b}` })}`),
 
-  // Students
-  students: (classroomId) =>
+  // One student
+  concepts: (studentId, classroomId) =>
+    request("GET", `/students/${enc(studentId)}/concepts${qs({ classroom_id: classroomId })}`),
+  conceptHistory: (studentId, { classroomId, conceptCode } = {}) =>
     request(
       "GET",
-      `/classrooms/${encodeURIComponent(classroomId)}/students`
+      `/students/${enc(studentId)}/concept-history${qs({ classroom_id: classroomId, concept_code: conceptCode })}`
     ),
+  findings: (studentId, assignmentId) =>
+    request("GET", `/students/${enc(studentId)}/findings${qs({ assignment_id: assignmentId })}`),
+  strengths: (studentId, assignmentId) =>
+    request("GET", `/students/${enc(studentId)}/strengths${qs({ assignment_id: assignmentId })}`),
 
-  // Student findings
-  findings: (studentId) =>
-    request(
-      "GET",
-      `/students/${encodeURIComponent(studentId)}/findings`
-    ),
-
-  // Start review
-  startReview: (classroomId) =>
-    request(
-      "POST",
-      `/classrooms/${encodeURIComponent(classroomId)}/reviews`
-    ),
-
-  // Review progress
-  reviewProgress: (runId) =>
-    request(
-      "GET",
-      `/reviews/${encodeURIComponent(runId)}`
-    ),
+  // Review class
+  startReview: (classroomId) => request("POST", `/classrooms/${enc(classroomId)}/reviews`),
+  reviewProgress: (runId) => request("GET", `/reviews/${enc(runId)}`),
 };
 
 // ------------------------------------
-// Utility functions
+// Small display helpers
 // ------------------------------------
 
-// Student IDs are long anonymous hashes.
-// First 12 characters are sufficient for display.
-export const shortId = (id) => (id || "").slice(0, 12);
+/** Student IDs are long anonymous hashes; the first 8 characters are enough to tell them apart. */
+export const shortId = (id) => (id || "").slice(0, 8);
+
+export function formatDate(value, { withTime = false } = {}) {
+  if (!value) return "—";
+  // A bare date ("2027-01-11") is a calendar day: don't shift it by the time zone.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    ...(withTime ? { hour: "numeric", minute: "2-digit" } : {}),
+  });
+}
+
+/** "Jan 11" for week columns. */
+export function formatWeek(value) {
+  if (!value) return "";
+  const d = new Date(`${value}T12:00:00`);
+  return Number.isNaN(d.getTime())
+    ? value
+    : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+export const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

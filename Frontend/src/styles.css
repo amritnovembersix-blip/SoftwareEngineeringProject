@@ -1,11 +1,7 @@
 
-/* =========================================================
-   SASS — STUDENT ACADEMIC SUPPORT SYSTEM
-   Complete application stylesheet
-   Theme: Ivory, lavender, white and deep purple
-========================================================= */
-
-/* ---------- 1. DESIGN TOKENS ---------- */
+/* =========================================
+   SASS - GLOBAL STYLES
+========================================= */
 
 :root {
   --bg: #faf9fc;
@@ -14,9 +10,11 @@
   --muted: #777487;
   --line: #dedbe6;
   --line-soft: #efedf3;
+
   --accent: #7053a8;
   --accent-hover: #5b408f;
   --accent-soft: #f1ecfa;
+
   --ok: #26734c;
   --ok-soft: #e8f5ed;
   --warn: #98621b;
@@ -24,15 +22,16 @@
   --bad: #ad3939;
   --bad-soft: #fcecec;
   --neutral-soft: #f3f1f6;
+
   --code-fg: #7652a3;
   --code-bg: #f2ecfa;
+
   --display: "Georgia", "Times New Roman", serif;
   --body: "Inter", "Segoe UI", system-ui, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
   color-scheme: light;
 }
-
-/* ---------- 2. GLOBAL STYLES ---------- */
 
 * {
   box-sizing: border-box;
@@ -85,7 +84,7 @@ p {
 }
 
 :focus-visible {
-  outline: 3px solid rgba(112, 83, 168, 0.35);
+  outline: 3px solid rgba(112, 83, 168, .35);
   outline-offset: 3px;
 }
 
@@ -94,7 +93,9 @@ p {
   color: #292644;
 }
 
-/* ---------- 3. EXISTING APP LAYOUT ---------- */
+/* =========================================
+   APP STRUCTURE
+========================================= */
 
 .app {
   min-height: 100vh;
@@ -118,13 +119,13 @@ p {
   padding-block: 16px;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
 }
 
 .brand {
   font: 700 22px var(--display);
-  letter-spacing: 0.5px;
+  letter-spacing: .5px;
   color: var(--fg);
   text-decoration: none;
 }
@@ -134,6 +135,43 @@ p {
   font-size: 14px;
 }
 
+.topbar-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #302747;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.topbar-role {
+  margin-left: 5px;
+  color: #82768f;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.logout-button {
+  min-height: 40px;
+  padding: 0 19px;
+  border: 1px solid #d8c9ed;
+  border-radius: 10px;
+  background: #f3edfa;
+  color: #69479e;
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.logout-button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
 .page {
   padding-block: 32px 64px;
   display: flex;
@@ -141,7 +179,9 @@ p {
   gap: 24px;
 }
 
-/* ---------- 4. HEADINGS AND TEXT ---------- */
+/* =========================================
+   GENERAL TYPOGRAPHY AND LAYOUT
+========================================= */
 
 .heading {
   display: flex;
@@ -218,7 +258,9 @@ p {
   align-self: flex-start;
 }
 
-/* ---------- 5. CARDS ---------- */
+/* =========================================
+   GENERAL CARDS
+========================================= */
 
 .card {
   background: var(--surface);
@@ -229,7 +271,7 @@ p {
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  box-shadow: 0 2px 8px rgba(45, 35, 75, 0.025);
+  box-shadow: 0 2px 8px rgba(45, 35, 75, .025);
 }
 
 .card-grid {
@@ -241,14 +283,14 @@ p {
 .card-link {
   color: var(--fg);
   text-decoration: none;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
 }
 
 .card-link:hover {
   border-color: var(--accent);
   color: var(--fg);
   transform: translateY(-2px);
-  box-shadow: 0 7px 20px rgba(45, 35, 75, 0.08);
+  box-shadow: 0 7px 20px rgba(45, 35, 75, .08);
 }
 
 .card-title {
@@ -280,7 +322,9 @@ p {
   color: var(--accent);
 }
 
-/* ---------- 6. STATUS PILLS ---------- */
+/* =========================================
+   STATUS PILLS
+========================================= */
 
 .pill {
   display: inline-block;
@@ -316,7 +360,9 @@ p {
   background: var(--bad-soft);
 }
 
-/* ---------- 7. BUTTONS ---------- */
+/* =========================================
+   BUTTONS
+========================================= */
 
 .btn {
   font: 600 15px var(--body);
@@ -327,13 +373,13 @@ p {
   background: var(--surface);
   color: var(--fg);
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background-color .15s, border-color .15s, transform .1s;
 }
 
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #ffffff;
+  color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -342,7 +388,7 @@ p {
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: .6;
   cursor: default;
 }
 
@@ -385,7 +431,9 @@ p {
   text-decoration: underline;
 }
 
-/* ---------- 8. PROGRESS ---------- */
+/* =========================================
+   PROGRESS
+========================================= */
 
 .progress-panel {
   background: var(--surface);
@@ -416,7 +464,7 @@ p {
   height: 100%;
   background: var(--accent);
   border-radius: inherit;
-  transition: width 0.4s ease;
+  transition: width .4s ease;
 }
 
 .progress-panel.succeeded .bar-fill {
@@ -426,15 +474,17 @@ p {
 .bar-fill.moving {
   background-image: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(255, 255, 255, 0) 100%
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,.35) 50%,
+    rgba(255,255,255,0) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
 
-/* ---------- 9. NOTICES AND BANNERS ---------- */
+/* =========================================
+   NOTICES AND BANNERS
+========================================= */
 
 .notice {
   background: var(--surface);
@@ -459,7 +509,7 @@ p {
   border-radius: 12px;
   border: 1px solid var(--ok);
   background: var(--ok-soft);
-  animation: slide-in 0.25s ease-out;
+  animation: slide-in .25s ease-out;
 }
 
 .banner.failed {
@@ -467,7 +517,9 @@ p {
   background: var(--bad-soft);
 }
 
-/* ---------- 10. TABLES ---------- */
+/* =========================================
+   TABLES
+========================================= */
 
 .table-box {
   background: var(--surface);
@@ -517,7 +569,7 @@ th.num .th-btn {
 
 tr.row-link {
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color .15s;
 }
 
 tr.row-link:hover {
@@ -536,7 +588,7 @@ tr.row-link:hover td a {
 .link-cell .link-text {
   font-size: 14px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity .15s;
 }
 
 tr.row-link:hover .link-cell .link-text,
@@ -550,7 +602,9 @@ tr.row-link:focus-within .link-cell .link-text {
   padding: 28px 20px;
 }
 
-/* ---------- 11. SEARCH AND FILTERS ---------- */
+/* =========================================
+   TOOLBAR AND SEARCH
+========================================= */
 
 .toolbar {
   display: flex;
@@ -608,11 +662,13 @@ tr.row-link:focus-within .link-cell .link-text {
 
 .chip-count {
   font-variant-numeric: tabular-nums;
-  opacity: 0.8;
+  opacity: .8;
   margin-left: 2px;
 }
 
-/* ---------- 12. FINDINGS AND EVIDENCE ---------- */
+/* =========================================
+   FINDINGS
+========================================= */
 
 .code-tag {
   font: 600 13px var(--mono);
@@ -672,10 +728,8 @@ tr.row-link:focus-within .link-cell .link-text {
 }
 
 .finding {
-  animation: slide-in 0.2s ease-out;
+  animation: slide-in .2s ease-out;
 }
-
-/* ---------- 13. SMALL UTILITIES ---------- */
 
 .visually-hidden {
   position: absolute;
@@ -692,8 +746,6 @@ tr.row-link:focus-within .link-cell .link-text {
   gap: 10px;
 }
 
-/* ---------- 14. ANIMATIONS ---------- */
-
 .spinner {
   display: inline-block;
   width: 14px;
@@ -703,22 +755,20 @@ tr.row-link:focus-within .link-cell .link-text {
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin .8s linear infinite;
 }
 
+/* =========================================
+   ANIMATIONS
+========================================= */
+
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 
 @keyframes slide-in {
@@ -733,21 +783,17 @@ tr.row-link:focus-within .link-cell .link-text {
 }
 
 @keyframes flash {
-  0% {
-    background: var(--ok-soft);
-  }
-  100% {
-    background: transparent;
-  }
+  0% { background: var(--ok-soft); }
+  100% { background: transparent; }
 }
 
 tr.row-flash {
   animation: flash 1.6s ease-out;
 }
 
-/* =========================================================
-   15. SASS LOGIN PAGE
-========================================================= */
+/* =========================================
+   LOGIN PAGE
+========================================= */
 
 .login-page {
   min-height: 100vh;
@@ -837,7 +883,7 @@ tr.row-flash {
   margin-top: auto;
   margin-left: -7vw;
   color: #a58bd7;
-  opacity: 0.72;
+  opacity: .72;
 }
 
 .login-form-side {
@@ -852,10 +898,10 @@ tr.row-flash {
   width: 100%;
   max-width: 650px;
   padding: 48px 52px 34px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255,255,255,.9);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 18px 55px rgba(63, 47, 95, 0.09);
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 18px 55px rgba(63,47,95,.09);
 }
 
 .login-card-heading {
@@ -874,8 +920,6 @@ tr.row-flash {
   font-size: 17px;
 }
 
-/* Role selector */
-
 .role-picker {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -888,7 +932,7 @@ tr.row-flash {
 .role-option {
   min-height: 58px;
   border: 0;
-  background: #fff;
+  background: white;
   color: #302d48;
   font: 600 16px var(--body);
   display: flex;
@@ -896,7 +940,7 @@ tr.row-flash {
   justify-content: center;
   gap: 11px;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  transition: background .18s, color .18s;
 }
 
 .role-option + .role-option {
@@ -914,8 +958,6 @@ tr.row-flash {
   box-shadow: inset 0 0 0 1.5px #a98bdc;
 }
 
-/* Login labels and fields */
-
 .login-label {
   display: block;
   margin: 17px 0 8px;
@@ -932,13 +974,13 @@ tr.row-flash {
   padding: 0 15px;
   border: 1px solid #d8d5df;
   border-radius: 11px;
-  background: #fff;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  background: white;
+  transition: border-color .18s, box-shadow .18s;
 }
 
 .login-input-wrap:focus-within {
   border-color: #8968c2;
-  box-shadow: 0 0 0 3px rgba(137, 104, 194, 0.12);
+  box-shadow: 0 0 0 3px rgba(137,104,194,.12);
 }
 
 .login-input-wrap > span {
@@ -971,8 +1013,6 @@ tr.row-flash {
   cursor: pointer;
   white-space: nowrap;
 }
-
-/* Login options */
 
 .login-options {
   display: flex;
@@ -1010,8 +1050,6 @@ tr.row-flash {
   text-decoration: underline;
 }
 
-/* Login messages */
-
 .login-message {
   margin: 0 0 14px;
   padding: 10px 12px;
@@ -1022,18 +1060,16 @@ tr.row-flash {
   line-height: 1.5;
 }
 
-/* Sign-in button */
-
 .login-submit {
   width: 100%;
   min-height: 53px;
   border: 0;
   border-radius: 11px;
   background: linear-gradient(105deg, #7255aa, #65479b);
-  color: #fff;
+  color: white;
   font: 600 16px var(--body);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  transition: transform .15s, box-shadow .15s, filter .15s;
 }
 
 .login-submit span {
@@ -1044,11 +1080,9 @@ tr.row-flash {
 
 .login-submit:hover {
   filter: brightness(1.06);
-  box-shadow: 0 7px 18px rgba(101, 71, 155, 0.2);
+  box-shadow: 0 7px 18px rgba(101,71,155,.2);
   transform: translateY(-1px);
 }
-
-/* Request access */
 
 .login-access-divider {
   display: flex;
@@ -1078,11 +1112,11 @@ tr.row-flash {
   gap: 10px;
   border: 1px solid #b9a8d8;
   border-radius: 10px;
-  background: #fff;
+  background: white;
   color: #40365f;
   font: 600 14px var(--body);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background .15s, border-color .15s;
 }
 
 .request-access-button:hover {
@@ -1097,7 +1131,440 @@ tr.row-flash {
   font-size: 11px;
 }
 
-/* ---------- 16. RESPONSIVE DESIGN ---------- */
+/* =========================================
+   TEACHER DASHBOARD
+========================================= */
+
+.teacher-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.dashboard-heading h1 {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 4vw, 2.7rem);
+  color: #24143f;
+  font-weight: 750;
+}
+
+.dashboard-heading p,
+.section-heading p {
+  margin: 0;
+  color: #746987;
+}
+
+.dashboard-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.overview-card {
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border: 1px solid #e9def7;
+  border-radius: 15px;
+  box-shadow: 0 3px 12px rgba(91,59,139,.04);
+}
+
+.overview-icon,
+.classroom-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #eee5fa;
+  color: #7953ad;
+  font-size: 25px;
+}
+
+.overview-card p {
+  margin: 0 0 3px;
+  color: #514461;
+  font-size: 14px;
+}
+
+.overview-card h2 {
+  margin: 0;
+  color: #24143f;
+  font-size: 29px;
+}
+
+.classroom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.section-heading h2 {
+  margin: 0 0 6px;
+  color: #24143f;
+  font-size: 25px;
+}
+
+.classroom-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.classroom-dashboard-card {
+  min-height: 230px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  color: inherit;
+  text-decoration: none;
+  background: white;
+  border: 1px solid #e9def7;
+  border-radius: 15px;
+  box-shadow: 0 3px 12px rgba(91,59,139,.04);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.classroom-dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(91,59,139,.09);
+}
+
+.classroom-card-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.classroom-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+}
+
+.classroom-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.classroom-title h3 {
+  margin: 0 0 7px;
+  color: #24143f;
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.classroom-grade {
+  display: inline-block;
+  padding: 5px 10px;
+  color: #594574;
+  background: #f0e8fa;
+  border-radius: 30px;
+  font-size: 12px;
+}
+
+.classroom-arrow {
+  color: #7652a5;
+  font-size: 23px;
+}
+
+.classroom-card-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.classroom-stat {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.stat-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: #7652a5;
+  background: #f3edfa;
+  border-radius: 11px;
+  font-size: 19px;
+}
+
+.classroom-stat div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.classroom-stat strong {
+  color: #24143f;
+  font-size: 21px;
+}
+
+.classroom-stat span:last-child {
+  color: #746987;
+  font-size: 12px;
+}
+
+.classroom-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-track {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  background: #eee7f5;
+  border-radius: 20px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9a70ca, #7950b1);
+  border-radius: 20px;
+  transition: width .3s ease;
+}
+
+.progress-label {
+  flex-shrink: 0;
+  color: #594574;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.classroom-open-link {
+  color: #7652a5;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* =========================================
+   TEACHER SIDEBAR
+========================================= */
+
+.workspace-shell {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.teacher-sidebar {
+  position: sticky;
+  top: 20px;
+  align-self: start;
+  width: 100%;
+  min-height: 0;
+  height: fit-content;
+
+  margin-top: 24px;
+  padding: 16px 12px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0;
+
+  background: white;
+  border: 1px solid #e9def7;
+  border-radius: 16px;
+  box-shadow: 0 3px 14px rgba(91,59,139,.05);
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 5px 6px 14px;
+  margin: 0 0 14px;
+  border-bottom: 1px solid #eee8f5;
+}
+
+.sidebar-avatar {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #eee5fa;
+  color: #7652a5;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sidebar-user-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-eyebrow {
+  color: #9279b4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.sidebar-user-info strong {
+  overflow: hidden;
+  color: #292344;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-role {
+  color: #82768f;
+  font-size: 12px;
+}
+
+.sidebar-nav-label {
+  padding: 0 9px;
+  margin: 0 0 8px;
+  color: #a096ad;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.teacher-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-link {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+
+  color: #625675;
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+
+  transition: background .18s, color .18s;
+}
+
+.sidebar-link:hover {
+  background: #f7f3fc;
+  color: #7652a5;
+}
+
+.sidebar-link.active {
+  background: #eee6f8;
+  color: #69479e;
+  font-weight: 700;
+}
+
+.sidebar-icon {
+  width: 22px;
+  flex-shrink: 0;
+  color: #8565b1;
+  font-size: 18px;
+  text-align: center;
+}
+
+.sidebar-link.is-disabled {
+  color: #b0a8ba;
+  cursor: not-allowed;
+  opacity: .65;
+}
+
+.sidebar-link.is-disabled .sidebar-icon {
+  color: #b9afc8;
+}
+
+/* Sidebar logout */
+
+.teacher-sidebar button.sidebar-logout {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+
+  width: 100%;
+  min-height: 40px;
+  margin: 14px 0 0;
+  padding: 10px 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+
+  border: 0;
+  border-top: 1px solid #eee8f5;
+  border-radius: 0;
+
+  background: transparent;
+  color: #ad5555;
+
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+
+  text-align: left;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.teacher-sidebar button.sidebar-logout .sidebar-icon {
+  color: #ad5555;
+  font-size: 18px;
+}
+
+.teacher-sidebar button.sidebar-logout:hover {
+  background: #fdf1f1;
+  border-radius: 8px;
+}
+
+.teacher-sidebar button.sidebar-logout:focus-visible {
+  outline: 2px solid #ad5555;
+  outline-offset: 2px;
+}
+
+.sidebar-footer {
+  margin: 12px 0 0;
+  padding: 10px 6px 2px;
+  border-top: 1px solid #eee8f5;
+  color: #a096ad;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.workspace-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 24px 0 64px;
+}
+
+/* =========================================
+   RESPONSIVE STYLES
+========================================= */
 
 @media (max-width: 900px) {
   .login-page {
@@ -1135,6 +1602,63 @@ tr.row-flash {
   }
 }
 
+@media (max-width: 850px) {
+  .workspace-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 0 18px;
+  }
+
+  .teacher-sidebar {
+    position: static;
+    min-height: auto;
+    height: auto;
+    margin-top: 18px;
+    padding: 12px;
+  }
+
+  .sidebar-user,
+  .sidebar-nav-label,
+  .sidebar-footer {
+    display: none;
+  }
+
+  .teacher-sidebar-nav {
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+  }
+
+  .sidebar-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .teacher-sidebar button.sidebar-logout {
+    width: auto;
+    flex: 0 0 auto;
+    margin: 0 0 0 6px;
+    padding: 0 12px;
+    border-top: 0;
+    border-left: 1px solid #eee8f5;
+  }
+
+  .workspace-page {
+    padding: 22px 0 45px;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-overview,
+  .classroom-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-card {
+    min-height: 100px;
+  }
+}
+
 @media (max-width: 600px) {
   h1 {
     font-size: 28px;
@@ -1149,6 +1673,13 @@ tr.row-flash {
     align-items: flex-start;
     flex-direction: column;
     gap: 4px;
+  }
+
+  .topbar-user {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    padding-top: 8px;
   }
 
   .page {
@@ -1210,7 +1741,57 @@ tr.row-flash {
   }
 }
 
-/* ---------- 17. ACCESSIBILITY ---------- */
+@media (max-width: 480px) {
+  .workspace-shell {
+    padding: 0 12px;
+  }
+
+  .sidebar-link {
+    min-height: 42px;
+    gap: 8px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .sidebar-icon {
+    font-size: 17px;
+  }
+
+  .classroom-dashboard-card {
+    padding: 19px;
+  }
+
+  .classroom-card-header {
+    gap: 12px;
+  }
+
+  .classroom-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .classroom-title h3 {
+    font-size: 18px;
+  }
+
+  .classroom-stat {
+    gap: 7px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 420px) {
+  .classroom-dashboard-card {
+    padding: 17px;
+  }
+
+  .classroom-card-stats {
+    gap: 8px;
+  }
+}
 
 @media (hover: none) {
   .link-cell .link-text {
@@ -1223,9 +1804,9 @@ tr.row-flash {
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
+    animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: .01ms !important;
   }
 
   .bar-fill {
@@ -1235,261 +1816,185 @@ tr.row-flash {
   .card-link:hover {
     transform: none;
   }
-
-/* Teacher dashboard */
-
-.teacher-dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-.dashboard-heading h1 {
-  margin: 0 0 8px;
-  font-size: clamp(2rem, 4vw, 2.7rem);
-  color: #24143f;
-  font-weight: 750;
-}
-
-.dashboard-heading p,
-.section-heading p {
-  margin: 0;
-  color: #746987;
-}
-
-.dashboard-overview {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.overview-card {
-  min-height: 145px;
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  padding: 26px;
-  background: #fff;
-  border: 1px solid #e9def7;
-  border-radius: 20px;
-  box-shadow: 0 5px 20px rgba(91, 59, 139, 0.06);
-}
-
-.overview-icon,
-.classroom-icon {
-  width: 76px;
-  height: 76px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 18px;
-  background: #eee5fa;
-  color: #7953ad;
-  font-size: 38px;
-}
-
-.overview-card p {
-  margin: 0 0 5px;
-  color: #514461;
-  font-size: 17px;
-}
-
-.overview-card h2 {
-  margin: 0;
-  color: #24143f;
-  font-size: 38px;
-}
-
-.classroom-section {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.section-heading h2 {
-  margin: 0 0 6px;
-  color: #24143f;
-  font-size: 27px;
-}
+  /* Cleaner classroom overview */
 
 .classroom-dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: 20px;
 }
 
 .classroom-dashboard-card {
-  min-height: 310px;
-  padding: 26px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 24px;
-  color: inherit;
-  text-decoration: none;
-  background: #fff;
-  border: 1px solid #e9def7;
-  border-radius: 22px;
-  box-shadow: 0 5px 20px rgba(91, 59, 139, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 0;
+  padding: 22px;
+  gap: 20px;
+  border: 1px solid #eee7f6;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(65, 43, 95, .035);
 }
 
 .classroom-dashboard-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(91, 59, 139, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(65, 43, 95, .07);
 }
 
 .classroom-card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-}
-
-.classroom-icon {
-  width: 70px;
-  height: 70px;
-  font-size: 34px;
-}
-
-.classroom-title {
-  flex: 1;
-  min-width: 0;
-}
-
-.classroom-title h3 {
-  margin: 0 0 10px;
-  color: #24143f;
-  font-size: 23px;
-  line-height: 1.3;
-}
-
-.classroom-grade {
-  display: inline-block;
-  padding: 7px 13px;
-  color: #594574;
-  background: #f0e8fa;
-  border-radius: 30px;
-  font-size: 13px;
-}
-
-.classroom-arrow {
-  color: #7652a5;
-  font-size: 27px;
-}
-
-.classroom-card-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.classroom-stat {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.classroom-title h3 {
+  font-size: 20px;
 }
 
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  color: #7652a5;
-  background: #f3edfa;
-  border-radius: 14px;
-  font-size: 24px;
-}
-
-.classroom-stat div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.classroom-card-stats {
+  gap: 20px;
 }
 
 .classroom-stat strong {
-  color: #24143f;
-  font-size: 25px;
-}
-
-.classroom-stat span:last-child {
-  color: #746987;
-  font-size: 13px;
+  font-size: 23px;
 }
 
 .classroom-progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .progress-track {
-  flex: 1;
-  height: 11px;
-  overflow: hidden;
-  background: #eee7f5;
-  border-radius: 20px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #9a70ca, #7950b1);
-  border-radius: 20px;
-  transition: width 0.3s ease;
-}
-
-.progress-label {
-  flex-shrink: 0;
-  color: #594574;
-  font-size: 13px;
-  font-weight: 600;
+  height: 7px;
 }
 
 .classroom-open-link {
-  color: #7652a5;
   font-size: 14px;
+}
+
+
+.student-assignments-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.assignment-page-heading h1 {
+  margin: 5px 0 8px;
+  color: #291d43;
+  font-size: 30px;
+}
+
+.assignment-eyebrow {
+  margin: 0;
+  color: #8565b1;
+  font-size: 13px;
   font-weight: 650;
 }
 
-@media (max-width: 760px) {
-  .dashboard-overview,
-  .classroom-dashboard-grid {
+.student-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 22px;
+  background: white;
+  border: 1px solid #e9def7;
+  border-radius: 15px;
+}
+
+.student-profile-avatar {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 15px;
+  background: #eee5fa;
+  color: #7652a5;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.student-profile-info h2 {
+  margin: 3px 0;
+  color: #291d43;
+  font-size: 20px;
+}
+
+.student-full-id {
+  color: #898195;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.assignment-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.assignment-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 105px;
+  padding: 20px;
+  background: white;
+  border: 1px solid #e9def7;
+  border-radius: 14px;
+}
+
+.summary-label {
+  color: #82768f;
+  font-size: 13px;
+}
+
+.assignment-summary-card strong {
+  color: #392957;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.assignment-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+
+.assignment-section-heading h2 {
+  margin: 0 0 6px;
+  color: #291d43;
+  font-size: 22px;
+}
+
+.assignment-section-heading p {
+  margin: 0;
+}
+
+.assignment-unavailable {
+  padding: 38px 24px;
+  text-align: center;
+  background: white;
+  border: 1px dashed #d8c9e9;
+  border-radius: 15px;
+}
+
+.assignment-unavailable-icon {
+  margin-bottom: 12px;
+  color: #8565b1;
+  font-size: 30px;
+}
+
+.assignment-unavailable h3 {
+  margin: 0 0 10px;
+  color: #392957;
+}
+
+.assignment-unavailable p {
+  max-width: 620px;
+  margin: 8px auto;
+  color: #746987;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .assignment-summary-grid {
     grid-template-columns: 1fr;
   }
-
-  .overview-card {
-    min-height: 115px;
-  }
-
-  .classroom-dashboard-card {
-    min-height: 280px;
-  }
 }
 
-@media (max-width: 420px) {
-  .classroom-dashboard-card {
-    padding: 19px;
-  }
-
-  .classroom-card-header {
-    gap: 12px;
-  }
-
-  .classroom-icon {
-    width: 55px;
-    height: 55px;
-  }
-
-  .classroom-title h3 {
-    font-size: 19px;
-  }
-
-  .classroom-stat {
-    gap: 7px;
-  }
-
-  .progress-label {
-    font-size: 11px;
-  }
-}
-
+  
 }
